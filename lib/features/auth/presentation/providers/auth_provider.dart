@@ -2,7 +2,7 @@ import 'package:apphoctienganh/features/auth/data/repositories/auth_repository.d
 import 'package:apphoctienganh/features/auth/presentation/screens/login_screen.dart';
 import 'package:apphoctienganh/features/auth/presentation/screens/register_screen.dart';
 import 'package:apphoctienganh/features/auth/presentation/screens/send_email_password_screen.dart';
-import 'package:apphoctienganh/features/home/presentation/screens/home_page.dart';
+import 'package:apphoctienganh/features/home/presentation/screens/centerhome.dart';
 import 'package:flutter/material.dart';
 
 class AuthProvider with ChangeNotifier {
@@ -28,7 +28,7 @@ class AuthProvider with ChangeNotifier {
 
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (context) => const HomePage()),
+      MaterialPageRoute(builder: (context) => const CenterHome()),
     );
   }
 

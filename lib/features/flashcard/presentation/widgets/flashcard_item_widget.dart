@@ -2,6 +2,9 @@ import 'package:apphoctienganh/features/flashcard/presentation/widgets/image_pic
 import 'package:apphoctienganh/features/flashcard/domain/entities/flashcard.dart';
 import 'package:flutter/material.dart';
 import 'package:apphoctienganh/features/flashcard/presentation/providers/flashcard_provider.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:gap/gap.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 class FlashcardItem_Widget extends StatefulWidget {
@@ -59,15 +62,17 @@ class _FlashcardItem_WidgetState extends State<FlashcardItem_Widget> {
       child: Column(
         children: [
           Card(
-            color: Colors.white,
+            color: const Color(0xFFF8F6FF),
             shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+              borderRadius: BorderRadius.circular(21),
             ),
-            elevation: 4,
+            elevation: 2,
+            shadowColor: const Color(0x1F6B5ECD),
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -88,66 +93,59 @@ class _FlashcardItem_WidgetState extends State<FlashcardItem_Widget> {
                       ),
                       Row(
                         children: [
-                          ElevatedButton(
-                            onPressed: () {
+                          Icon(
+                            FontAwesomeIcons.gripVertical,
+                            color: const Color(0xFFB3AECF),
+                            size: 14,
+                          ),
+                          const SizedBox(width: 10),
+                          InkWell(
+                            onTap: () {
                               context
                                   .read<FlashcardProvider>()
-                                  .updateFlashcardByGemini(
-                                    id: widget.flashcard.id,
-                                  );
+                                  .duplicateFlashcardById(widget.flashcard.id);
                             },
-                            child: Row(
-                              children: [
-                                // thêm loading
-                                Consumer<FlashcardProvider>(
-                                  builder: (context, provider, child) {
-                                    final isLoading = provider
-                                        .isFlashcardLoading(
-                                          widget.flashcard.id,
-                                        );
-                                    return isLoading
-                                        ? SizedBox(
-                                          height: 25,
-                                          width: 25,
-                                          child: CircularProgressIndicator(
-                                            strokeWidth: 2,
-                                          ),
-                                        )
-                                        : Row(
-                                          children: [
-                                            Icon(Icons.auto_awesome),
-                                            SizedBox(width: 10),
-                                            Text(
-                                              "Ask Gemini",
-                                              style: TextStyle(fontSize: 12),
-                                            ),
-                                          ],
-                                        );
-                                  },
-                                ),
-                              ],
+                            borderRadius: BorderRadius.circular(20),
+                            child: const Padding(
+                              padding: EdgeInsets.all(2),
+                              child: Icon(
+                                FontAwesomeIcons.clone,
+                                color: Color(0xFF5A5781),
+                                size: 16,
+                              ),
                             ),
                           ),
-                          ElevatedButton(
-                            onPressed: () {
+                          const SizedBox(width: 10),
+                          InkWell(
+                            onTap: () {
                               context
                                   .read<FlashcardProvider>()
                                   .deleteFlashcardById(widget.flashcard.id);
                             },
-                            style: ElevatedButton.styleFrom(
-                              shape: CircleBorder(),
-                              padding: EdgeInsets.all(0.5),
-                            ),
-                            child: Icon(
-                              Icons.delete_forever_outlined,
-                              size: 28,
+                            borderRadius: BorderRadius.circular(20),
+                            child: const Padding(
+                              padding: EdgeInsets.all(2),
+                              child: Icon(
+                                FontAwesomeIcons.solidTrashCan,
+                                color: Colors.red,
+                                size: 16,
+                              ),
                             ),
                           ),
                         ],
                       ),
                     ],
                   ),
-                  SizedBox(height: 5),
+                  Gap(8),
+                  Text(
+                    'Mặt trước',
+                    style: GoogleFonts.lexend(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 16,
+                      color: Color(0xFF5A5781),
+                    ),
+                  ),
+                  Gap(2),
                   Row(
                     children: <Widget>[
                       ImagePickerButton(
@@ -171,11 +169,24 @@ class _FlashcardItem_WidgetState extends State<FlashcardItem_Widget> {
                           minLines: 1,
                           decoration: InputDecoration(
                             filled: true,
-                            fillColor: Colors.grey[100],
+                            fillColor: const Color(0xFFFFFFFF),
                             hintText: 'Thuật ngữ',
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(20),
                               borderSide: BorderSide.none,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFE8E3F6),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF8B7CF6),
+                                width: 1.4,
+                              ),
                             ),
                           ),
                         ),
@@ -183,6 +194,15 @@ class _FlashcardItem_WidgetState extends State<FlashcardItem_Widget> {
                     ],
                   ),
                   SizedBox(height: 10),
+                  Text(
+                    'Mặt sau',
+                    style: GoogleFonts.lexend(
+                      fontWeight: FontWeight.w500,
+                      fontSize: 16,
+                      color: Color(0xFF5A5781),
+                    ),
+                  ),
+                  Gap(2),
                   Row(
                     children: <Widget>[
                       ImagePickerButton(
@@ -206,11 +226,24 @@ class _FlashcardItem_WidgetState extends State<FlashcardItem_Widget> {
                           minLines: 1,
                           decoration: InputDecoration(
                             filled: true,
-                            fillColor: Colors.grey[100],
+                            fillColor: const Color(0xFFFFFFFF),
                             hintText: 'Định nghĩa',
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(20),
                               borderSide: BorderSide.none,
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFE8E3F6),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF8B7CF6),
+                                width: 1.4,
+                              ),
                             ),
                           ),
                         ),

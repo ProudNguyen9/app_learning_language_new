@@ -1,8 +1,6 @@
 import 'package:apphoctienganh/core/theme/app_colors.dart';
-import 'package:apphoctienganh/features/auth/presentation/screens/profile_screen.dart';
-import 'package:apphoctienganh/features/flashcard/presentation/screens/create_flashcard_screen.dart';
 import 'package:apphoctienganh/features/home/presentation/providers/home_provider.dart';
-import 'package:apphoctienganh/shared/widgets/section_heading.dart';
+import 'package:apphoctienganh/shared/widgets/widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
@@ -10,15 +8,15 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
 class HomePage extends StatefulWidget {
-  const HomePage({super.key});
+  const HomePage({super.key, this.showBottomNavigation = true});
+
+  final bool showBottomNavigation;
 
   @override
   State<HomePage> createState() => _HomePageState();
 }
 
 class _HomePageState extends State<HomePage> {
-  int currentIndex = 0;
-
   @override
   void initState() {
     super.initState();
@@ -56,7 +54,6 @@ class _HomePageState extends State<HomePage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const Gap(10),
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
@@ -91,6 +88,8 @@ class _HomePageState extends State<HomePage> {
                   ],
                 ),
                 const Gap(10),
+                momentumStreakCard(),
+                const SizedBox(height: 14),
                 const SectionHeading(text: 'HỌC GẦN ĐÂY'),
                 const SizedBox(height: 5),
                 const _TimeFilterTabs(
@@ -108,89 +107,90 @@ class _HomePageState extends State<HomePage> {
                 const Gap(15),
                 Row(
                   children: [
-                    Expanded(child: cardListeningSkills()),
+                    Expanded(
+                      child: Card_skill(
+                        title: 'Reading',
+                        subtitle: 'Read articles and passages',
+                        icon: Icons.menu_book_outlined,
+                        iconcolor: const Color(0xFF177E9B),
+                        iconBackgroundColor: const Color(0xFFEAF8FC),
+                        onTap: null,
+                      ),
+                    ),
                     const SizedBox(width: 8),
-                    Expanded(child: cardListeningSkills()),
+                    Expanded(
+                      child: Card_skill(
+                        title: 'Writing',
+                        subtitle: 'Practice sentence building',
+                        icon: Icons.edit_note,
+                        iconcolor: const Color(0xFFE66A8D),
+                        iconBackgroundColor: const Color(0xFFFFEEF3),
+                        onTap: null,
+                      ),
+                    ),
                   ],
                 ),
                 const SizedBox(height: 8),
                 Row(
                   children: [
-                    Expanded(child: cardReadingSkills()),
+                    Expanded(
+                      child: Card_skill(
+                        title: 'Speaking',
+                        subtitle: 'Improve pronunciation daily',
+                        icon: Icons.mic_none_rounded,
+                        iconcolor: const Color(0xFF7A52CC),
+                        iconBackgroundColor: const Color(0xFFF1EAFE),
+                        onTap: null,
+                      ),
+                    ),
                     const SizedBox(width: 8),
-                    Expanded(child: cardWritingSkills()),
+                    Expanded(
+                      child: Card_skill(
+                        title: 'Listening',
+                        subtitle: 'Train your ears with audio',
+                        icon: Icons.headphones,
+                        iconcolor: const Color(0xFF3A5BDB),
+                        iconBackgroundColor: const Color(0xFFE9EEFF),
+                        onTap: null,
+                      ),
+                    ),
                   ],
                 ),
-                const SizedBox(height: 20),
-                momentumStreakCard(),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Card_skill(
+                        title: 'Vocabulary',
+                        subtitle: 'Learn useful words fast',
+                        icon: Icons.translate,
+                        iconcolor: const Color(0xFF2E9E5B),
+                        iconBackgroundColor: const Color(0xFFEAFBF1),
+                        onTap: null,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Card_skill(
+                        title: 'Grammar',
+                        subtitle: 'Master essential structures',
+                        icon: Icons.spellcheck,
+                        iconcolor: const Color(0xFFDA8A18),
+                        iconBackgroundColor: const Color(0xFFFFF6E8),
+                        onTap: null,
+                      ),
+                    ),
+                  ],
+                ),
+
                 const SizedBox(height: 24),
               ],
             ),
           ),
         ),
-        floatingActionButton: SizedBox(
-          width: 45,
-          height: 45,
-          child: FloatingActionButton(
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => CreateFlashcard()),
-              );
-            },
-            backgroundColor: const Color.fromRGBO(83, 209, 197, 1),
-            child: const Icon(Icons.add, color: Colors.white),
-          ),
-        ),
-        bottomNavigationBar: Theme(
-          data: Theme.of(context).copyWith(canvasColor: Colors.white),
-          child: BottomNavigationBar(
-            backgroundColor: Colors.white,
-            currentIndex: currentIndex,
-            onTap: (index) {
-              if (index == currentIndex) return;
 
-              setState(() {
-                currentIndex = index;
-              });
-
-              Widget nextPage;
-              if (index == 0) {
-                nextPage = const HomePage();
-              } else if (index == 1) {
-                nextPage = const HomePage();
-              } else if (index == 2) {
-                nextPage = CreateFlashcard();
-              } else {
-                nextPage = const ProfileScreen();
-              }
-
-              Navigator.pushReplacement(
-                context,
-                MaterialPageRoute(builder: (context) => nextPage),
-              );
-            },
-            items: const [
-              BottomNavigationBarItem(
-                icon: Icon(Icons.home),
-                label: 'Trang chủ',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.auto_awesome),
-                label: 'AI',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.menu_book),
-                label: 'Flashcard',
-              ),
-              BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Tôi'),
-            ],
-            selectedItemColor: const Color(0xFF13A8A8),
-            unselectedItemColor: const Color(0xFFA6A6A6),
-            type: BottomNavigationBarType.fixed,
-            elevation: 8,
-          ),
-        ),
+        bottomNavigationBar:
+            widget.showBottomNavigation ? null : const SizedBox.shrink(),
       ),
     );
   }
@@ -320,237 +320,210 @@ Container cardEndingSounds() {
   );
 }
 
-Widget cardListeningSkills() {
-  return AspectRatio(
-    aspectRatio: 0.95,
-    child: Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: const Color(0xFFE9EEFF),
-              borderRadius: BorderRadius.circular(28),
-            ),
-            child: const Icon(
-              Icons.headphones,
-              color: Color(0xFF3A5BDB),
-              size: 26,
-            ),
-          ),
-          const SizedBox(height: 18),
-          const Text(
-            'Nghe',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF2F2F5F),
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Listening skills',
-            style: TextStyle(
-              fontSize: 11,
-              color: Color(0xFF6F7296),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-Widget cardReadingSkills() {
-  return AspectRatio(
-    aspectRatio: 0.95,
-    child: Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: const Color(0xFFEAF8FC),
-              borderRadius: BorderRadius.circular(28),
-            ),
-            child: const Icon(
-              Icons.menu_book_outlined,
-              color: Color(0xFF177E9B),
-              size: 26,
-            ),
-          ),
-          const SizedBox(height: 18),
-          const Text(
-            'Đọc',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF2F2F5F),
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Reading skills',
-            style: TextStyle(
-              fontSize: 11,
-              color: Color(0xFF6F7296),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
-Widget cardWritingSkills() {
-  return AspectRatio(
-    aspectRatio: 0.95,
-    child: Container(
-      padding: const EdgeInsets.all(18),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Container(
-            width: 56,
-            height: 56,
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFEEF3),
-              borderRadius: BorderRadius.circular(28),
-            ),
-            child: const Icon(
-              Icons.edit_note,
-              color: Color(0xFFE66A8D),
-              size: 26,
-            ),
-          ),
-          const SizedBox(height: 18),
-          const Text(
-            'Viết',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.w800,
-              color: Color(0xFF2F2F5F),
-            ),
-          ),
-          const SizedBox(height: 4),
-          const Text(
-            'Writing skills',
-            style: TextStyle(
-              fontSize: 11,
-              color: Color(0xFF6F7296),
-              fontWeight: FontWeight.w500,
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-}
-
 Widget momentumStreakCard() {
+  final streakDays = [
+    ('Mon', true),
+    ('Tue', true),
+    ('Wed', true),
+    ('Thu', true),
+    ('Fri', false),
+    ('Sat', false),
+    ('Sun', true),
+  ];
+
   return Container(
     width: double.infinity,
-    padding: const EdgeInsets.fromLTRB(24, 24, 24, 22),
+    padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
     decoration: BoxDecoration(
       gradient: const LinearGradient(
-        begin: Alignment.centerLeft,
-        end: Alignment.centerRight,
-        colors: [Color(0xFF4963F0), Color(0xFF8D9CFF)],
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [Color(0xFF4A63F6), Color(0xFF6F87FF), Color(0xFF93A4FF)],
       ),
-      borderRadius: BorderRadius.circular(16),
+      borderRadius: BorderRadius.circular(18),
+      boxShadow: const [
+        BoxShadow(
+          color: Color(0x243E5CE7),
+          blurRadius: 10,
+          offset: Offset(0, 6),
+        ),
+      ],
     ),
-    child: Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    child: Stack(
       children: [
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text(
-                'MOMENTUM STREAK',
-                style: TextStyle(
-                  color: Color(0xFFD5DBFF),
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  letterSpacing: 1.8,
-                ),
+        Positioned(
+          top: -2,
+          right: -2,
+          child: Icon(
+            Icons.local_fire_department_rounded,
+            size: 38,
+            color: Colors.white.withOpacity(0.12),
+          ),
+        ),
+        Positioned(
+          bottom: -8,
+          left: -8,
+          child: Container(
+            width: 30,
+            height: 30,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: Colors.white.withOpacity(0.08),
+            ),
+          ),
+        ),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'MOMENTUM STREAK',
+              style: TextStyle(
+                color: Color(0xFFDCE2FF),
+                fontSize: 9,
+                fontWeight: FontWeight.w700,
+                letterSpacing: 1.2,
               ),
-              const SizedBox(height: 10),
-              const Text(
-                '12 Ngày',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 28,
-                  fontWeight: FontWeight.w800,
-                ),
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                'Đừng bỏ lỡ bài học hôm nay để\n duy trì chuỗi!',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 14,
-                  height: 1.45,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 18),
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(999),
-                ),
-                child: const Text(
-                  'Học Ngay',
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                const Text(
+                  '12',
                   style: TextStyle(
-                    color: Color(0xFF3657E8),
-                    fontSize: 16,
+                    color: Colors.white,
+                    fontSize: 18,
+                    fontWeight: FontWeight.w900,
+                    height: 1,
+                  ),
+                ),
+                const SizedBox(width: 4),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 6,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white.withOpacity(0.16),
+                    borderRadius: BorderRadius.circular(999),
+                    border: Border.all(color: Colors.white.withOpacity(0.18)),
+                  ),
+                  child: const Text(
+                    'days active',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 8,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 6),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.14),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withOpacity(0.16)),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  for (final item in streakDays)
+                    _StreakDayBadge(label: item.$1, isActive: item.$2),
+                ],
+              ),
+            ),
+            const SizedBox(height: 6),
+            Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: const Text(
+                    'Learn now',
+                    style: TextStyle(
+                      color: Color(0xFF3657E8),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 4),
+                const Text(
+                  '5/7 days this week',
+                  style: TextStyle(
+                    color: Color(0xFFE8ECFF),
+                    fontSize: 9,
                     fontWeight: FontWeight.w700,
                   ),
                 ),
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(width: 16),
-        Padding(
-          padding: const EdgeInsets.only(top: 8),
-          child: Icon(
-            Icons.local_fire_department_outlined,
-            size: 72,
-            color: Colors.white.withOpacity(0.18),
-          ),
+              ],
+            ),
+          ],
         ),
       ],
     ),
   );
+}
+
+class _StreakDayBadge extends StatelessWidget {
+  const _StreakDayBadge({required this.label, required this.isActive});
+
+  final String label;
+  final bool isActive;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 22,
+          height: 22,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color:
+                isActive
+                    ? const Color(0xFFFFB347)
+                    : Colors.white.withOpacity(0.14),
+            boxShadow:
+                isActive
+                    ? const [
+                      BoxShadow(
+                        color: Color(0x40FF9F43),
+                        blurRadius: 6,
+                        offset: Offset(0, 3),
+                      ),
+                    ]
+                    : null,
+          ),
+          child: Icon(
+            isActive
+                ? Icons.local_fire_department_rounded
+                : Icons.local_fire_department_outlined,
+            color: isActive ? Colors.white : const Color(0xFFD8DEFF),
+            size: 11,
+          ),
+        ),
+        const SizedBox(height: 3),
+        Text(
+          label,
+          style: TextStyle(
+            color: isActive ? Colors.white : const Color(0xFFD8DEFF),
+            fontSize: 8,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
+    );
+  }
 }
 
 class _TimeFilterTabs extends StatefulWidget {

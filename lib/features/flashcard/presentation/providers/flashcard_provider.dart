@@ -20,6 +20,13 @@ class FlashcardProvider with ChangeNotifier {
       questionImage: null,
       answerImage: null,
     ),
+    Flashcard(
+      id: const Uuid().v4(),
+      question: "",
+      answer: "",
+      questionImage: null,
+      answerImage: null,
+    ),
   ];
   List<Flashcard> get flashcardList => _flashcards;
   set flashcardListset(List<Flashcard> newList) {
@@ -46,7 +53,25 @@ class FlashcardProvider with ChangeNotifier {
   }
 
   void deleteFlashcardById(String id) {
+    if (_flashcards.length <= 2) return;
     _flashcards.removeWhere((flashcard) => flashcard.id == id);
+    notifyListeners();
+  }
+
+  void duplicateFlashcardById(String id) {
+    final index = _flashcards.indexWhere((fc) => fc.id == id);
+    if (index == -1) return;
+
+    final current = _flashcards[index];
+    final duplicated = Flashcard(
+      id: const Uuid().v4(),
+      question: current.question,
+      answer: current.answer,
+      questionImage: current.questionImage,
+      answerImage: current.answerImage,
+    );
+
+    _flashcards.insert(index + 1, duplicated);
     notifyListeners();
   }
 
@@ -315,6 +340,13 @@ class FlashcardProvider with ChangeNotifier {
           questionImage: null,
           answerImage: null,
         ),
+        Flashcard(
+          id: const Uuid().v4(),
+          question: "",
+          answer: "",
+          questionImage: null,
+          answerImage: null,
+        ),
       ];
       _flashcards = newcard;
       notifyListeners();
@@ -371,6 +403,13 @@ class FlashcardProvider with ChangeNotifier {
 
       // Reset danh sách flashcards
       var newcard = [
+        Flashcard(
+          id: const Uuid().v4(),
+          question: "",
+          answer: "",
+          questionImage: null,
+          answerImage: null,
+        ),
         Flashcard(
           id: const Uuid().v4(),
           question: "",

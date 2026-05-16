@@ -1,6 +1,6 @@
 import 'package:apphoctienganh/features/auth/presentation/providers/auth_provider.dart';
 import 'package:apphoctienganh/core/theme/app_colors.dart';
-import 'package:apphoctienganh/features/home/presentation/screens/home_page.dart';
+import 'package:apphoctienganh/features/home/presentation/screens/centerhome.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -246,7 +246,7 @@ class _LoginScreenState extends State<LoginScreen> {
                               Navigator.push(
                                 context,
                                 MaterialPageRoute(
-                                  builder: (context) => const HomePage(),
+                                  builder: (context) => const CenterHome(),
                                 ),
                               );
                             } else {

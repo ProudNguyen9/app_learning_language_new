@@ -1,13 +1,17 @@
-import 'package:apphoctienganh/features/auth/presentation/screens/profile_screen.dart';
-import 'package:apphoctienganh/features/home/presentation/screens/home_page.dart';
 import 'package:apphoctienganh/features/flashcard/presentation/providers/flashcard_provider.dart';
 import 'package:apphoctienganh/features/flashcard/presentation/widgets/flashcard_item_widget.dart';
+import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:gap/gap.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/theme/app_colors.dart';
+
 class CreateFlashcard extends StatefulWidget {
-  const CreateFlashcard({super.key});
+  const CreateFlashcard({super.key, this.showBottomNavigation = true});
+
+  final bool showBottomNavigation;
 
   @override
   State<CreateFlashcard> createState() => _CreateFlashcardState();
@@ -16,93 +20,72 @@ class CreateFlashcard extends StatefulWidget {
 class _CreateFlashcardState extends State<CreateFlashcard> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  int currentIndex = 1;
+  int currentIndex = 2;
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text("Flashcard", style: TextStyle(fontSize: 21)),
-            ElevatedButton(
-              onPressed: () async {
-                // Lấy giá trị từ các trường tiêu đề và mô tả
-                String title = _titleController.text;
-                String description = _descriptionController.text;
-
-                // Gọi hàm lưu flashcard
-                String result = await context
-                    .read<FlashcardProvider>()
-                    .save_list_flashcard_async(
-                      title: title,
-                      description: description,
-                    );
-
-                // Hiển thị kết quả
-                ScaffoldMessenger.of(
-                  // ignore: use_build_context_synchronously
-                  context,
-                ).showSnackBar(SnackBar(content: Text(result)));
-                if (result == 'Lưu flashcard thành công!') {
-                  // gọi clearTempFlashcard trước khi điều hướng
-
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => HomePage()),
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Color.fromRGBO(83, 209, 197, 1),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                side: BorderSide(color: Colors.cyan, width: 2),
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Save',
-                    style: TextStyle(fontSize: 16, color: Colors.black),
-                  ),
-                  SizedBox(width: 5),
-                  FaIcon(
-                    FontAwesomeIcons.penToSquare,
-                    color: Colors.black,
-                    size: 18,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
       body: Padding(
-        padding: EdgeInsets.all(15),
+        padding: EdgeInsets.all(16),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(height: 5),
+              Gap(20),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Flashcard',
+                    style: GoogleFonts.plusJakartaSans(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 21,
+                      color: ColorSetting.colorprimary,
+                    ),
+                  ),
+                  SizedBox(
+                    width: 89,
+                    height: 40,
+                    child: ElevatedButton(
+                      onPressed: () {},
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Color.fromARGB(255, 15, 15, 237),
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                      ),
+                      child: Text(
+                        'Lưu',
+                        style: GoogleFonts.lexend(
+                          color: Colors.white,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              Gap(5),
               Text(
                 'Tiêu đề',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                style: GoogleFonts.lexend(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 16,
+                  color: Color(0xFF5A5781),
+                ),
               ),
               SizedBox(height: 5),
               TextFormField(
                 controller: _titleController,
                 maxLines: null,
-                minLines: 1,
+                minLines: 3,
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: Colors.grey[100],
-                  hintText: 'Viết tiêu đề',
+                  hintText:
+                      'Viết tiêu đề cho bộ flashcard của bạn ví dụ: "Flashcard về động từ bất quy tắc"',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(20),
                     borderSide: BorderSide.none,
@@ -111,69 +94,176 @@ class _CreateFlashcardState extends State<CreateFlashcard> {
               ),
               SizedBox(height: 15),
               Text(
-                'Sự miêu tả',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                'Mô tả',
+                style: GoogleFonts.lexend(
+                  fontWeight: FontWeight.w500,
+                  fontSize: 16,
+                  color: Color(0xFF5A5781),
+                ),
               ),
               SizedBox(height: 5),
               TextFormField(
                 maxLines: null,
-                minLines: 1,
+                minLines: 2,
                 controller: _descriptionController,
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: Colors.grey[100],
-                  hintText: 'Viết miêu tả',
+                  hintText: 'Viết mô tả cho bộ flashcard của bạn',
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(20),
                     borderSide: BorderSide.none,
                   ),
                 ),
               ),
-              SizedBox(height: 15),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        backgroundColor: Colors.white,
-
-                        builder: (context) {
-                          return ClipRRect(
-                            borderRadius: BorderRadius.vertical(
-                              top: Radius.circular(28),
-                            ),
-                            child: FractionallySizedBox(heightFactor: 0.9),
-                          );
-                        },
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
+              Gap(15),
+              Container(
+                padding: EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Color(0xFFF3EEFF),
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Nhập nhanh',
+                      style: GoogleFonts.lexend(
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2F2A5A),
                       ),
                     ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.lightbulb_outline),
-                        SizedBox(width: 10),
-                        Text(
-                          "Tạo Flashcard bằng AI",
-                          style: TextStyle(fontSize: 14),
-                        ),
-                      ],
+                    Gap(10),
+                    Text(
+                      'Chuyển đổi ngay lập tức các ghi chú hoặc tài liệu thành thẻ học tập bằng Quizii AI.',
+                      style: GoogleFonts.lexend(
+                        fontWeight: FontWeight.w500,
+                        fontSize: 14,
+                        color: Color(0xFF5A5781),
+                      ),
                     ),
+                    Gap(5),
+                    Container(
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFFF6F2FF),
+                        borderRadius: BorderRadius.circular(21),
+                      ),
+                      child: Column(
+                        children: [
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 14,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(18),
+                                    border: Border.all(
+                                      color: const Color(0xFFE6E1F5),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.description_outlined,
+                                        color: Color(0xFF4A67FF),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          'Nhập từ tài liệu',
+                                          style: GoogleFonts.lexend(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                            color: const Color(0xFF2F2A5A),
+                                          ),
+                                        ),
+                                      ),
+                                      const Icon(
+                                        Icons.chevron_right,
+                                        color: Color(0xFFB9B4DA),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 12),
+                          Row(
+                            children: [
+                              Expanded(
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 14,
+                                  ),
+                                  decoration: BoxDecoration(
+                                    color: Colors.white,
+                                    borderRadius: BorderRadius.circular(18),
+                                    border: Border.all(
+                                      color: const Color(0xFFE6E1F5),
+                                    ),
+                                  ),
+                                  child: Row(
+                                    children: [
+                                      const Icon(
+                                        Icons.auto_awesome_outlined,
+                                        color: Color(0xFFC58B00),
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          'AI Magic Paste',
+                                          style: GoogleFonts.lexend(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                            color: const Color(0xFF2F2A5A),
+                                          ),
+                                        ),
+                                      ),
+                                      const Icon(
+                                        Icons.chevron_right,
+                                        color: Color(0xFFB9B4DA),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Gap(10),
+
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Flashcard',
+                    style: GoogleFonts.lexend(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 18,
+                      color: Color(0xFF2F2A5A),
+                    ),
+                  ),
+                  const Icon(
+                    Icons.swap_vert_rounded,
+                    color: Color(0xFF5A5781),
+                    size: 22,
                   ),
                 ],
               ),
-              SizedBox(height: 15),
-              Text(
-                'Danh sách Flashcard',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              SizedBox(height: 10),
+              Gap(5),
               Consumer<FlashcardProvider>(
                 builder: (context, myProvider, child) {
                   return ListView.builder(
@@ -191,59 +281,97 @@ class _CreateFlashcardState extends State<CreateFlashcard> {
                   );
                 },
               ),
+              const SizedBox(height: 16),
+              GestureDetector(
+                onTap: () {
+                  context.read<FlashcardProvider>().addFlashcard();
+                },
+                child: DottedBorder(
+                  color: const Color(0xFFD8D1F7),
+                  strokeWidth: 1.5,
+                  dashPattern: const [7, 5],
+                  borderType: BorderType.RRect,
+                  radius: const Radius.circular(24),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 28),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF8F6FF),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 58,
+                          height: 58,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFE2DCFF),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.add,
+                            size: 32,
+                            color: Color(0xFF5A5781),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Text(
+                          'Thêm thẻ mới',
+                          style: GoogleFonts.lexend(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF4A4672),
+                          ),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Nhấn để thêm nhanh một thẻ mới',
+                          style: GoogleFonts.lexend(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            color: const Color(0xFF9B97BC),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 16),
+              Center(
+                child: Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 14,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFE2DCFF),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.note_add_outlined,
+                        color: Color(0xFF3E3A67),
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'CSV / Excel',
+                        style: GoogleFonts.lexend(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF3E3A67),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
             ],
           ),
         ),
-      ),
-      floatingActionButton: SizedBox(
-        width: 50,
-        height: 50,
-        child: FloatingActionButton(
-          onPressed: () {
-            context.read<FlashcardProvider>().addFlashcard();
-          },
-
-          backgroundColor: Color.fromRGBO(83, 209, 197, 1),
-          child: Icon(Icons.add),
-        ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: currentIndex,
-        onTap: (index) {
-          if (index == currentIndex) {
-            return; // Không làm gì nếu chọn lại tab đang ở
-          }
-
-          setState(() {
-            currentIndex = index;
-          });
-
-          Widget nextPage;
-
-          if (index == 0) {
-            nextPage = HomePage();
-          } else if (index == 1) {
-            nextPage = CreateFlashcard();
-          } else {
-            nextPage = ProfileScreen();
-          }
-
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => nextPage),
-          );
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.menu_book),
-            label: "Flashcard",
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-        ],
-
-        selectedItemColor: Colors.teal,
-        unselectedItemColor: Colors.grey,
       ),
     );
   }

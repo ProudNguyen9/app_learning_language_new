@@ -1,11 +1,11 @@
-import 'package:apphoctienganh/features/flashcard/presentation/screens/create_flashcard_screen.dart';
-import 'package:apphoctienganh/features/home/presentation/screens/home_page.dart';
 import 'package:apphoctienganh/features/auth/presentation/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({super.key});
+  const ProfileScreen({super.key, this.showBottomNavigation = true});
+
+  final bool showBottomNavigation;
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -155,32 +155,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 2,
-        onTap: (index) {
-          if (index == 0) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => HomePage()),
-            );
-          } else if (index == 1) {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => CreateFlashcard()),
-            );
-          }
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.menu_book),
-            label: "Flashcard",
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-        ],
-        selectedItemColor: Colors.teal,
-        unselectedItemColor: Colors.grey,
-      ),
+      bottomNavigationBar:
+          widget.showBottomNavigation ? null : const SizedBox.shrink(),
     );
   }
 
