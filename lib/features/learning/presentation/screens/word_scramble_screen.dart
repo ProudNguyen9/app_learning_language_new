@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import 'package:rflutter_alert/rflutter_alert.dart';
 import 'package:apphoctienganh/features/flashcard/domain/entities/flashcard.dart';
 import 'package:apphoctienganh/features/learning/presentation/providers/word_scramble_provider.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 class WordScrambleScreen extends StatefulWidget {
   final List<Flashcard> flashcards;
@@ -15,6 +16,11 @@ class WordScrambleScreen extends StatefulWidget {
 
 class _WordScrambleScreenState extends State<WordScrambleScreen> {
   late WordScrambleProvider provider;
+  static const Color _pageBackground = Color(0xFFF6F3FF);
+  static const Color _surfaceColor = Colors.white;
+  static const Color _borderColor = Color(0xFFE8E0FB);
+  static const Color _mutedText = Color(0xFF7C7595);
+  static const Color _primaryColor = Color(0xFF6C63FF);
 
   @override
   void initState() {
@@ -28,108 +34,178 @@ class _WordScrambleScreenState extends State<WordScrambleScreen> {
     return ChangeNotifierProvider.value(
       value: provider,
       child: Scaffold(
-        appBar: AppBar(title: const Text('Sắp xếp chữ cái')),
+        backgroundColor: _pageBackground,
+        appBar: AppBar(
+          backgroundColor: _pageBackground,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          titleSpacing: 20,
+          foregroundColor: const Color(0xFF241B4A),
+          title: Text(
+            'Xếp chữ',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 21,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF241B4A),
+            ),
+          ),
+        ),
         body: Consumer<WordScrambleProvider>(
           builder: (context, provider, _) {
             return Padding(
-              padding: const EdgeInsets.all(20),
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 20),
               child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Kéo chữ cái vào đúng vị trí:',
-                    style: TextStyle(fontSize: 20),
-                  ),
-                  const SizedBox(height: 20),
-
-                  // DragTarget for placing letters
-                  Wrap(
-                    spacing: 8.0, // Horizontal space between the letters
-                    runSpacing:
-                        8.0, // Vertical space between the rows of letters
-                    children: List.generate(provider.originalWord.length, (
-                      index,
-                    ) {
-                      return DragTarget<LetterUnit>(
-                        onAcceptWithDetails: (letterDetails) {
-                          final letter = letterDetails.data;
-                          final fromIndex = provider.userAnswer.indexOf(letter);
-                          if (fromIndex != -1) {
-                            provider.moveLetterBetweenTargets(
-                              letter,
-                              fromIndex,
-                              index,
-                            );
-                          } else {
-                            provider.acceptLetter(letter, index);
-                          }
-                        },
-                        builder: (_, accepted, rejected) {
-                          final letter =
-                              index < provider.userAnswer.length
-                                  ? provider.userAnswer[index]
-                                  : null;
-                          return Container(
-                            width: 50,
-                            height: 50,
-                            margin: const EdgeInsets.all(4),
-                            alignment: Alignment.center,
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey),
-                              color: Colors.grey[200],
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(18),
+                    decoration: BoxDecoration(
+                      color: _surfaceColor,
+                      borderRadius: BorderRadius.circular(24),
+                      border: Border.all(color: _borderColor),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Row(
+                          children: [
+                            Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFEAF4FF),
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              child: const Icon(
+                                Icons.sort_by_alpha_rounded,
+                                color: _primaryColor,
+                                size: 20,
+                              ),
                             ),
-                            child:
-                                letter != null
-                                    ? Draggable<LetterUnit>(
-                                      data: letter,
-                                      feedback: Material(
-                                        color: Colors.transparent,
-                                        child: Text(
-                                          letter.char,
-                                          style: const TextStyle(
-                                            fontSize: 24,
-                                            color: Colors.blue,
-                                          ),
-                                        ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Sắp xếp đúng từ này',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 22,
+                                  fontWeight: FontWeight.w800,
+                                  color: const Color(0xFF241B4A),
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Chủ đề: ${provider.currentCard.answer}',
+                          style: GoogleFonts.lexend(
+                            fontSize: 13,
+                            color: _mutedText,
+                          ),
+                        ),
+                        const SizedBox(height: 18),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 14,
+                            vertical: 18,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF3EEFF),
+                            borderRadius: BorderRadius.circular(18),
+                          ),
+                          child: Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: List.generate(
+                              provider.originalWord.length,
+                              (index) {
+                                return DragTarget<LetterUnit>(
+                                  onAcceptWithDetails: (letterDetails) {
+                                    final letter = letterDetails.data;
+                                    final fromIndex = provider.userAnswer
+                                        .indexOf(letter);
+                                    if (fromIndex != -1) {
+                                      provider.moveLetterBetweenTargets(
+                                        letter,
+                                        fromIndex,
+                                        index,
+                                      );
+                                    } else {
+                                      provider.acceptLetter(letter, index);
+                                    }
+                                  },
+                                  builder: (_, accepted, rejected) {
+                                    final letter =
+                                        index < provider.userAnswer.length
+                                            ? provider.userAnswer[index]
+                                            : null;
+                                    return Container(
+                                      width: 54,
+                                      height: 54,
+                                      margin: const EdgeInsets.all(2),
+                                      alignment: Alignment.center,
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(16),
+                                        border: Border.all(color: _borderColor),
+                                        color: Colors.white,
                                       ),
-                                      childWhenDragging: Container(),
-                                      child: Text(
-                                        letter.char,
-                                        style: const TextStyle(fontSize: 24),
-                                      ),
-                                      onDragCompleted: () {
-                                        provider.removeLetterFromAnswer(index);
-                                      },
-                                    )
-                                    : null,
-                          );
-                        },
-                      );
-                    }),
+                                      child:
+                                          letter != null
+                                              ? Draggable<LetterUnit>(
+                                                data: letter,
+                                                feedback: Material(
+                                                  color: Colors.transparent,
+                                                  child: _letterBox(
+                                                    letter.char,
+                                                  ),
+                                                ),
+                                                childWhenDragging:
+                                                    const SizedBox.shrink(),
+                                                child: Text(
+                                                  letter.char,
+                                                  style:
+                                                      GoogleFonts.plusJakartaSans(
+                                                        fontSize: 24,
+                                                        fontWeight:
+                                                            FontWeight.w800,
+                                                        color: _primaryColor,
+                                                      ),
+                                                ),
+                                                onDragCompleted: () {
+                                                  provider
+                                                      .removeLetterFromAnswer(
+                                                        index,
+                                                      );
+                                                },
+                                              )
+                                              : null,
+                                    );
+                                  },
+                                );
+                              },
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 40),
+                  const SizedBox(height: 18),
 
-                  // Draggable letters to be placed
                   Center(
                     child: Wrap(
-                      spacing: 10, // Horizontal space between letters
-                      runSpacing: 10, // Vertical space between wrapped rows
+                      spacing: 10,
+                      runSpacing: 10,
                       children:
                           provider.shuffledLetters.map((letter) {
                             return ConstrainedBox(
-                              constraints: BoxConstraints(
-                                maxWidth: 100,
-                              ), // Limit each letter box width
+                              constraints: const BoxConstraints(maxWidth: 100),
                               child: Draggable<LetterUnit>(
                                 data: letter,
                                 feedback: Material(
                                   color: Colors.transparent,
-                                  child: Text(
-                                    letter.char,
-                                    style: const TextStyle(
-                                      fontSize: 30,
-                                      color: Colors.blue,
-                                    ),
-                                  ),
+                                  child: _letterBox(letter.char),
                                 ),
                                 childWhenDragging: Opacity(
                                   opacity: 0.3,
@@ -142,66 +218,129 @@ class _WordScrambleScreenState extends State<WordScrambleScreen> {
                     ),
                   ),
 
-                  const SizedBox(height: 30),
+                  const SizedBox(height: 18),
 
-                  ElevatedButton(
-                    onPressed:
-                        provider.submitted
-                            ? () {
-                              if (!provider.next()) {
-                                provider.reset(); // Restart if no more words
+                  SizedBox(
+                    width: double.infinity,
+                    height: 54,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: _primaryColor,
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(18),
+                        ),
+                      ),
+                      onPressed:
+                          provider.submitted
+                              ? () {
+                                if (!provider.next()) {
+                                  provider.reset();
+                                }
                               }
-                            }
-                            : provider.submit,
-                    child: Text(provider.submitted ? 'Từ khác' : 'Xác nhận'),
+                              : provider.submit,
+                      child: Text(
+                        provider.submitted ? 'Từ khác' : 'Kiểm tra đáp án',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                    ),
                   ),
 
-                  const SizedBox(height: 20),
+                  const SizedBox(height: 18),
 
-                  // Display result after submission
                   if (provider.submitted)
-                    Column(
-                      children: [
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        color:
+                            provider.isCorrect
+                                ? const Color(0xFFEAFBF2)
+                                : const Color(0xFFFFF4E8),
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color:
                               provider.isCorrect
-                                  ? Icons.check_circle
-                                  : Icons.cancel,
-                              color:
-                                  provider.isCorrect
-                                      ? Colors.green
-                                      : Colors.orange,
-                              size: 32,
-                            ),
-                            const SizedBox(width: 10),
-                            Text(
-                              provider.isCorrect ? 'Chính xác!' : 'Sai rồi!',
-                              style: TextStyle(
-                                fontSize: 20,
+                                  ? const Color(0xFFBCEFD6)
+                                  : const Color(0xFFFFD7A8),
+                        ),
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
+                              Icon(
+                                provider.isCorrect
+                                    ? Icons.check_circle_rounded
+                                    : Icons.error_rounded,
                                 color:
                                     provider.isCorrect
-                                        ? Colors.green
-                                        : Colors.orange,
-                                fontWeight: FontWeight.bold,
+                                        ? const Color(0xFF24B273)
+                                        : const Color(0xFFEF8A17),
+                                size: 24,
                               ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 10),
-                        Text(
-                          'Từ gốc: ${provider.currentCard.question}',
-                          style: const TextStyle(fontSize: 18),
-                        ),
-                        Text(
-                          'Nghĩa: ${provider.currentCard.answer}',
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontStyle: FontStyle.italic,
+                              const SizedBox(width: 10),
+                              Text(
+                                provider.isCorrect
+                                    ? 'Chính xác!'
+                                    : 'Chưa đúng!',
+                                style: GoogleFonts.plusJakartaSans(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.w800,
+                                  color:
+                                      provider.isCorrect
+                                          ? const Color(0xFF1E8E68)
+                                          : const Color(0xFFB86A10),
+                                ),
+                              ),
+                            ],
                           ),
-                        ),
-                      ],
+                          const Padding(
+                            padding: EdgeInsets.symmetric(vertical: 14),
+                            child: Divider(height: 1, color: Color(0xFFE8E0FB)),
+                          ),
+                          Text(
+                            'Từ gốc',
+                            style: GoogleFonts.lexend(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: _mutedText,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            provider.currentCard.question,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF241B4A),
+                            ),
+                          ),
+                          const SizedBox(height: 12),
+                          Text(
+                            'Nghĩa',
+                            style: GoogleFonts.lexend(
+                              fontSize: 11,
+                              fontWeight: FontWeight.w600,
+                              color: _mutedText,
+                            ),
+                          ),
+                          const SizedBox(height: 6),
+                          Text(
+                            provider.currentCard.answer,
+                            style: GoogleFonts.plusJakartaSans(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                              color: const Color(0xFF4A4563),
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
 
                   // Dialog when retrying wrong answers
@@ -261,17 +400,21 @@ class _WordScrambleScreenState extends State<WordScrambleScreen> {
 
   Widget _letterBox(String letter) {
     return Container(
-      width: 50,
-      height: 50,
+      width: 54,
+      height: 54,
       alignment: Alignment.center,
       decoration: BoxDecoration(
-        color: Colors.grey[200],
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(color: Colors.grey),
+        color: _surfaceColor,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: _borderColor),
       ),
       child: Text(
         letter,
-        style: const TextStyle(fontSize: 24, color: Colors.black),
+        style: GoogleFonts.plusJakartaSans(
+          fontSize: 24,
+          fontWeight: FontWeight.w800,
+          color: _primaryColor,
+        ),
       ),
     );
   }

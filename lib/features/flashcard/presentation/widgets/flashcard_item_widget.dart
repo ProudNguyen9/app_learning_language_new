@@ -22,6 +22,48 @@ class FlashcardItem_Widget extends StatefulWidget {
 }
 
 class _FlashcardItem_WidgetState extends State<FlashcardItem_Widget> {
+  static const List<_LanguageOption> _languageOptions = [
+    _LanguageOption(code: 'en-US', name: 'English', flag: '🇺🇸'),
+    _LanguageOption(code: 'vi-VN', name: 'Tiếng Việt', flag: '🇻🇳'),
+    _LanguageOption(code: 'ja-JP', name: '日本語', flag: '🇯🇵'),
+    _LanguageOption(code: 'ko-KR', name: '한국어', flag: '🇰🇷'),
+    _LanguageOption(code: 'zh-CN', name: '中文', flag: '🇨🇳'),
+    _LanguageOption(code: 'fr-FR', name: 'Français', flag: '🇫🇷'),
+    _LanguageOption(code: 'de-DE', name: 'Deutsch', flag: '🇩🇪'),
+    _LanguageOption(code: 'es-ES', name: 'Español', flag: '🇪🇸'),
+    _LanguageOption(code: 'it-IT', name: 'Italiano', flag: '🇮🇹'),
+    _LanguageOption(code: 'pt-BR', name: 'Português', flag: '🇧🇷'),
+    _LanguageOption(code: 'pt-PT', name: 'Português PT', flag: '🇵🇹'),
+    _LanguageOption(code: 'ru-RU', name: 'Русский', flag: '🇷🇺'),
+    _LanguageOption(code: 'th-TH', name: 'ไทย', flag: '🇹🇭'),
+    _LanguageOption(code: 'id-ID', name: 'Indonesia', flag: '🇮🇩'),
+    _LanguageOption(code: 'ms-MY', name: 'Bahasa Melayu', flag: '🇲🇾'),
+    _LanguageOption(code: 'hi-IN', name: 'हिन्दी', flag: '🇮🇳'),
+    _LanguageOption(code: 'bn-BD', name: 'বাংলা', flag: '🇧🇩'),
+    _LanguageOption(code: 'ur-PK', name: 'اردو', flag: '🇵🇰'),
+    _LanguageOption(code: 'ar-SA', name: 'العربية', flag: '🇸🇦'),
+    _LanguageOption(code: 'nl-NL', name: 'Nederlands', flag: '🇳🇱'),
+    _LanguageOption(code: 'pl-PL', name: 'Polski', flag: '🇵🇱'),
+    _LanguageOption(code: 'tr-TR', name: 'Türkçe', flag: '🇹🇷'),
+    _LanguageOption(code: 'sv-SE', name: 'Svenska', flag: '🇸🇪'),
+    _LanguageOption(code: 'da-DK', name: 'Dansk', flag: '🇩🇰'),
+    _LanguageOption(code: 'fi-FI', name: 'Suomi', flag: '🇫🇮'),
+    _LanguageOption(code: 'no-NO', name: 'Norsk', flag: '🇳🇴'),
+    _LanguageOption(code: 'cs-CZ', name: 'Čeština', flag: '🇨🇿'),
+    _LanguageOption(code: 'el-GR', name: 'Ελληνικά', flag: '🇬🇷'),
+    _LanguageOption(code: 'he-IL', name: 'עברית', flag: '🇮🇱'),
+    _LanguageOption(code: 'hu-HU', name: 'Magyar', flag: '🇭🇺'),
+    _LanguageOption(code: 'ro-RO', name: 'Română', flag: '🇷🇴'),
+    _LanguageOption(code: 'sk-SK', name: 'Slovenčina', flag: '🇸🇰'),
+    _LanguageOption(code: 'uk-UA', name: 'Українська', flag: '🇺🇦'),
+    _LanguageOption(code: 'ca-ES', name: 'Català', flag: '🇪🇸'),
+    _LanguageOption(code: 'es-MX', name: 'Español MX', flag: '🇲🇽'),
+    _LanguageOption(code: 'en-GB', name: 'English UK', flag: '🇬🇧'),
+    _LanguageOption(code: 'en-AU', name: 'English AU', flag: '🇦🇺'),
+    _LanguageOption(code: 'en-CA', name: 'English CA', flag: '🇨🇦'),
+    _LanguageOption(code: 'fr-CA', name: 'Français CA', flag: '🇨🇦'),
+  ];
+
   late TextEditingController _questionController;
   late TextEditingController _answerController;
 
@@ -62,12 +104,12 @@ class _FlashcardItem_WidgetState extends State<FlashcardItem_Widget> {
       child: Column(
         children: [
           Card(
-            color: const Color(0xFFF8F6FF),
+            color: Colors.white,
             shape: RoundedRectangleBorder(
+              side: const BorderSide(color: Color(0xFFF0E3EA), width: 1.4),
               borderRadius: BorderRadius.circular(21),
             ),
-            elevation: 2,
-            shadowColor: const Color(0x1F6B5ECD),
+            elevation: 0,
             child: Padding(
               padding: const EdgeInsets.all(16.0),
               child: Column(
@@ -137,15 +179,33 @@ class _FlashcardItem_WidgetState extends State<FlashcardItem_Widget> {
                     ],
                   ),
                   Gap(8),
-                  Text(
-                    'Mặt trước',
-                    style: GoogleFonts.lexend(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 16,
-                      color: Color(0xFF5A5781),
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Mặt trước',
+                          style: GoogleFonts.lexend(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 16,
+                            color: Color(0xFF5A5781),
+                          ),
+                        ),
+                      ),
+                      _buildLanguageDropdown(
+                        value: widget.flashcard.questionLanguage,
+                        onChanged: (value) {
+                          if (value == null) return;
+                          context
+                              .read<FlashcardProvider>()
+                              .updateFlashcardContent(
+                                id: widget.flashcard.id,
+                                questionLanguage: value,
+                              );
+                        },
+                      ),
+                    ],
                   ),
-                  Gap(2),
+                  Gap(8),
                   Row(
                     children: <Widget>[
                       ImagePickerButton(
@@ -194,15 +254,33 @@ class _FlashcardItem_WidgetState extends State<FlashcardItem_Widget> {
                     ],
                   ),
                   SizedBox(height: 10),
-                  Text(
-                    'Mặt sau',
-                    style: GoogleFonts.lexend(
-                      fontWeight: FontWeight.w500,
-                      fontSize: 16,
-                      color: Color(0xFF5A5781),
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'Mặt sau',
+                          style: GoogleFonts.lexend(
+                            fontWeight: FontWeight.w500,
+                            fontSize: 16,
+                            color: Color(0xFF5A5781),
+                          ),
+                        ),
+                      ),
+                      _buildLanguageDropdown(
+                        value: widget.flashcard.answerLanguage,
+                        onChanged: (value) {
+                          if (value == null) return;
+                          context
+                              .read<FlashcardProvider>()
+                              .updateFlashcardContent(
+                                id: widget.flashcard.id,
+                                answerLanguage: value,
+                              );
+                        },
+                      ),
+                    ],
                   ),
-                  Gap(2),
+                  Gap(8),
                   Row(
                     children: <Widget>[
                       ImagePickerButton(
@@ -259,4 +337,136 @@ class _FlashcardItem_WidgetState extends State<FlashcardItem_Widget> {
       ),
     );
   }
+
+  Widget _buildLanguageDropdown({
+    required String value,
+    required ValueChanged<String?> onChanged,
+  }) {
+    final selectedLanguage = _languageOptions.firstWhere(
+      (language) => language.code == value,
+      orElse: () => _languageOptions.first,
+    );
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap:
+          () => _showLanguagePicker(
+            selectedCode: selectedLanguage.code,
+            onSelected: onChanged,
+          ),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 2, vertical: 4),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(selectedLanguage.flag, style: const TextStyle(fontSize: 18)),
+            const Gap(5),
+            Text(
+              selectedLanguage.name,
+              style: GoogleFonts.lexend(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF5A5781),
+              ),
+            ),
+            const Gap(2),
+            const Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: 17,
+              color: Color(0xFF8A84A8),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _showLanguagePicker({
+    required String selectedCode,
+    required ValueChanged<String?> onSelected,
+  }) async {
+    final selected = await showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: Colors.white,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      isScrollControlled: true,
+      builder: (context) {
+        return SafeArea(
+          child: FractionallySizedBox(
+            heightFactor: 0.82,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Chọn ngôn ngữ phát âm',
+                    style: GoogleFonts.lexend(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w800,
+                      color: const Color(0xFF2F2A5A),
+                    ),
+                  ),
+                  const Gap(12),
+                  Expanded(
+                    child: ListView.separated(
+                      itemCount: _languageOptions.length,
+                      separatorBuilder: (_, __) => const Divider(height: 1),
+                      itemBuilder: (context, index) {
+                        final language = _languageOptions[index];
+                        final isSelected = language.code == selectedCode;
+
+                        return ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          leading: Text(
+                            language.flag,
+                            style: const TextStyle(fontSize: 22),
+                          ),
+                          title: Text(
+                            language.name,
+                            style: GoogleFonts.lexend(
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                              color: const Color(0xFF2F2A5A),
+                            ),
+                          ),
+                          subtitle: Text(language.code),
+                          trailing:
+                              isSelected
+                                  ? const Icon(
+                                    Icons.check_circle_rounded,
+                                    color: Color(0xFF3D5AFE),
+                                  )
+                                  : null,
+                          onTap: () => Navigator.pop(context, language.code),
+                        );
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+
+    if (selected != null) {
+      onSelected(selected);
+    }
+  }
+}
+
+class _LanguageOption {
+  final String code;
+  final String name;
+  final String flag;
+
+  const _LanguageOption({
+    required this.code,
+    required this.name,
+    required this.flag,
+  });
 }

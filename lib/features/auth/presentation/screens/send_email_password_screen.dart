@@ -28,8 +28,8 @@ class _EnterEmailScreenState extends State<EnterEmailScreen> {
           centerTitle: true,
           title: Text(
             'Đặt lại mật khẩu',
-            style: GoogleFonts.rubikStorm(
-              fontSize: 24,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 22,
               fontWeight: FontWeight.w800,
               color: ColorSetting.colorprimary,
             ),

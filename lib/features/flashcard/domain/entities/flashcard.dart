@@ -8,6 +8,11 @@ class Flashcard {
   String? questionImage;
 
   String? answerImage;
+
+  String questionLanguage;
+
+  String answerLanguage;
+
   //  Chuyển từ Map Firebase sang Flashcard
   factory Flashcard.fromMap(Map<String, dynamic> map) {
     return Flashcard(
@@ -16,6 +21,8 @@ class Flashcard {
       answer: map['answer'] ?? '',
       questionImage: map['questionImage'],
       answerImage: map['answerImage'],
+      questionLanguage: map['questionLanguage'] ?? 'en-US',
+      answerLanguage: map['answerLanguage'] ?? 'vi-VN',
     );
   }
 
@@ -27,6 +34,8 @@ class Flashcard {
       'answer': answer,
       'questionImage': questionImage,
       'answerImage': answerImage,
+      'questionLanguage': questionLanguage,
+      'answerLanguage': answerLanguage,
     };
   }
 
@@ -36,5 +45,7 @@ class Flashcard {
     required this.answer,
     this.questionImage,
     this.answerImage,
+    this.questionLanguage = 'en-US',
+    this.answerLanguage = 'vi-VN',
   });
 }

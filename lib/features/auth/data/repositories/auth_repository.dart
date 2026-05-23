@@ -66,16 +66,12 @@ final class LocalAuthRepository implements AuthRepository {
   }
 
   @override
-  Future<bool> signInWithGoogle() async {
-    final started = await supabase.auth.signInWithOAuth(OAuthProvider.google);
-
-    final user = supabase.auth.currentUser;
-    if (user != null) {
-      _user = _mapSupabaseUser(user);
-    }
-
-    return started;
-  }
+Future<bool> signInWithGoogle() async {
+  return await supabase.auth.signInWithOAuth(
+    OAuthProvider.google,
+    redirectTo: 'io.supabase.flutter://login-callback/',
+  );
+}
 
   @override
   UserProfile? getCurrentUserProfile() {

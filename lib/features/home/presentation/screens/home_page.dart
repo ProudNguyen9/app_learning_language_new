@@ -1,4 +1,5 @@
 import 'package:apphoctienganh/core/theme/app_colors.dart';
+import 'package:apphoctienganh/features/auth/presentation/screens/profile_screen.dart';
 import 'package:apphoctienganh/features/home/presentation/providers/home_provider.dart';
 import 'package:apphoctienganh/shared/widgets/widget.dart';
 import 'package:flutter/material.dart';
@@ -59,12 +60,24 @@ class _HomePageState extends State<HomePage> {
                   children: [
                     Row(
                       children: [
-                        ClipOval(
-                          child: Image.asset(
-                            'assets/uselogo.jpg',
-                            width: 40,
-                            height: 40,
-                            fit: BoxFit.cover,
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder:
+                                    (_) => const ProfileScreen(
+                                      showBottomNavigation: false,
+                                    ),
+                              ),
+                            );
+                          },
+                          child: ClipOval(
+                            child: Image.asset(
+                              'assets/uselogo.jpg',
+                              width: 40,
+                              height: 40,
+                              fit: BoxFit.cover,
+                            ),
                           ),
                         ),
                         const Gap(8),
@@ -109,8 +122,8 @@ class _HomePageState extends State<HomePage> {
                   children: [
                     Expanded(
                       child: Card_skill(
-                        title: 'Reading',
-                        subtitle: 'Read articles and passages',
+                        title: 'Đọc hiểu',
+                        subtitle: 'Đọc bài viết và đoạn văn',
                         icon: Icons.menu_book_outlined,
                         iconcolor: const Color(0xFF177E9B),
                         iconBackgroundColor: const Color(0xFFEAF8FC),
@@ -120,8 +133,8 @@ class _HomePageState extends State<HomePage> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Card_skill(
-                        title: 'Writing',
-                        subtitle: 'Practice sentence building',
+                        title: 'Viết',
+                        subtitle: 'Luyện viết câu và diễn đạt',
                         icon: Icons.edit_note,
                         iconcolor: const Color(0xFFE66A8D),
                         iconBackgroundColor: const Color(0xFFFFEEF3),
@@ -135,8 +148,8 @@ class _HomePageState extends State<HomePage> {
                   children: [
                     Expanded(
                       child: Card_skill(
-                        title: 'Speaking',
-                        subtitle: 'Improve pronunciation daily',
+                        title: 'Nói',
+                        subtitle: 'Cải thiện phát âm mỗi ngày',
                         icon: Icons.mic_none_rounded,
                         iconcolor: const Color(0xFF7A52CC),
                         iconBackgroundColor: const Color(0xFFF1EAFE),
@@ -146,37 +159,11 @@ class _HomePageState extends State<HomePage> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Card_skill(
-                        title: 'Listening',
-                        subtitle: 'Train your ears with audio',
+                        title: 'Nghe',
+                        subtitle: 'Luyện nghe qua âm thanh',
                         icon: Icons.headphones,
                         iconcolor: const Color(0xFF3A5BDB),
                         iconBackgroundColor: const Color(0xFFE9EEFF),
-                        onTap: null,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Card_skill(
-                        title: 'Vocabulary',
-                        subtitle: 'Learn useful words fast',
-                        icon: Icons.translate,
-                        iconcolor: const Color(0xFF2E9E5B),
-                        iconBackgroundColor: const Color(0xFFEAFBF1),
-                        onTap: null,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Card_skill(
-                        title: 'Grammar',
-                        subtitle: 'Master essential structures',
-                        icon: Icons.spellcheck,
-                        iconcolor: const Color(0xFFDA8A18),
-                        iconBackgroundColor: const Color(0xFFFFF6E8),
                         onTap: null,
                       ),
                     ),
@@ -447,7 +434,7 @@ Widget momentumStreakCard() {
                     borderRadius: BorderRadius.circular(999),
                   ),
                   child: const Text(
-                    'Learn now',
+                    'Học ngay',
                     style: TextStyle(
                       color: Color(0xFF3657E8),
                       fontSize: 10,
@@ -456,14 +443,6 @@ Widget momentumStreakCard() {
                   ),
                 ),
                 const SizedBox(width: 4),
-                const Text(
-                  '5/7 days this week',
-                  style: TextStyle(
-                    color: Color(0xFFE8ECFF),
-                    fontSize: 9,
-                    fontWeight: FontWeight.w700,
-                  ),
-                ),
               ],
             ),
           ],

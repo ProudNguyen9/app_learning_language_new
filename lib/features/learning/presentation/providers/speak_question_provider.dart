@@ -5,8 +5,13 @@ import 'package:speech_to_text/speech_to_text.dart' as stt;
 class SpeechQuestion {
   final String id;
   final String question;
+  final String questionLanguage;
 
-  SpeechQuestion({required this.id, required this.question});
+  SpeechQuestion({
+    required this.id,
+    required this.question,
+    this.questionLanguage = 'en-US',
+  });
 }
 
 class SpeechQuestionProvider with ChangeNotifier {
@@ -55,6 +60,7 @@ class SpeechQuestionProvider with ChangeNotifier {
           question:
               flashcard
                   .question, // Hoặc flashcard.answer nếu ông chủ muốn điền đáp án
+          questionLanguage: flashcard.questionLanguage,
         ),
       ),
     );
@@ -75,7 +81,8 @@ class SpeechQuestionProvider with ChangeNotifier {
       currentQuestion.question.toLowerCase().trim(),
     );
     final spoken = _removePunctuation(_spokenText.toLowerCase().trim());
-    bool isCorrect = expected == spoken;
+    final similarity = _calculateSimilarity(expected, spoken);
+    bool isCorrect = similarity >= 0.6;
     if (!isCorrect) _incorrectAnswers++;
     return isCorrect;
   }
@@ -84,10 +91,55 @@ class SpeechQuestionProvider with ChangeNotifier {
     return text.replaceAll(RegExp(r'[^\w\s]'), '').trim();
   }
 
+  double _calculateSimilarity(String a, String b) {
+    if (a.isEmpty || b.isEmpty) return 0;
+    if (a == b) return 1;
+
+    final distance = _levenshteinDistance(a, b);
+    final maxLength = a.length > b.length ? a.length : b.length;
+    return 1 - (distance / maxLength);
+  }
+
+  int _levenshteinDistance(String a, String b) {
+    final rows = a.length + 1;
+    final cols = b.length + 1;
+    final matrix = List.generate(rows, (_) => List.filled(cols, 0));
+
+    for (var i = 0; i < rows; i++) {
+      matrix[i][0] = i;
+    }
+    for (var j = 0; j < cols; j++) {
+      matrix[0][j] = j;
+    }
+
+    for (var i = 1; i < rows; i++) {
+      for (var j = 1; j < cols; j++) {
+        final cost = a[i - 1] == b[j - 1] ? 0 : 1;
+        matrix[i][j] = [
+          matrix[i - 1][j] + 1,
+          matrix[i][j - 1] + 1,
+          matrix[i - 1][j - 1] + cost,
+        ].reduce((curr, next) => curr < next ? curr : next);
+      }
+    }
+
+    return matrix[a.length][b.length];
+  }
+
   void nextQuestion() {
     if (!isLastQuestion) {
       _currentIndex++;
       _spokenText = '';
+      notifyListeners();
+    }
+  }
+
+  void previousQuestion() {
+    if (_currentIndex > 0) {
+      _currentIndex--;
+      _spokenText = '';
+      _isListening = false;
+      _speech.stop();
       notifyListeners();
     }
   }

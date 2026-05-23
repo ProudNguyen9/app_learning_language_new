@@ -28,9 +28,9 @@ class ImagePickerButton extends StatelessWidget {
         return imagePath == null
             ? IconButton(
               icon: const FaIcon(
-                FontAwesomeIcons.image,
-                size: 24,
-                color: Color(0xFF5A5781),
+                FontAwesomeIcons.fileImage,
+                size: 26,
+                color: Color(0xFF233E7B),
               ),
               onPressed: () {
                 // Gọi hàm pickImage với tham số `isQuestion` được truyền vào

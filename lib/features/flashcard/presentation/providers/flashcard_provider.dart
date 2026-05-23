@@ -1,14 +1,8 @@
-import 'dart:convert';
 import 'dart:io';
-import 'package:apphoctienganh/core/data/local_flashcard_store.dart';
 import 'package:apphoctienganh/features/flashcard/domain/entities/flashcard.dart';
-import 'package:apphoctienganh/features/flashcard/domain/entities/list_flashcard.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_gemini/flutter_gemini.dart';
-import 'package:http/http.dart' as http;
 import 'package:image_picker/image_picker.dart';
-import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:uuid/uuid.dart';
 
 class FlashcardProvider with ChangeNotifier {
@@ -34,9 +28,27 @@ class FlashcardProvider with ChangeNotifier {
   }
 
   final ImagePicker _picker = ImagePicker();
+  final SupabaseClient _supabase = Supabase.instance.client;
+  static const String _bucketName = 'img_flashcard';
 
-  Set<String> loadingFlashcards =
-      {}; // vòng xoay ở nút ask gemini lưu vào đây tí xong thì remove
+  List<Flashcard> _buildInitialFlashcards() {
+    return [
+      Flashcard(
+        id: const Uuid().v4(),
+        question: "",
+        answer: "",
+        questionImage: null,
+        answerImage: null,
+      ),
+      Flashcard(
+        id: const Uuid().v4(),
+        question: "",
+        answer: "",
+        questionImage: null,
+        answerImage: null,
+      ),
+    ];
+  }
 
   // add new flashcard
   void addFlashcard() {
@@ -49,6 +61,40 @@ class FlashcardProvider with ChangeNotifier {
         answerImage: null,
       ),
     );
+    notifyListeners();
+  }
+
+  void importFlashcards(List<Flashcard> flashcards, {required bool replace}) {
+    final uuid = const Uuid();
+    final importedFlashcards = <Flashcard>[];
+
+    for (final flashcard in flashcards) {
+      final question = flashcard.question.trim();
+      final answer = flashcard.answer.trim();
+
+      if (question.isEmpty && answer.isEmpty) continue;
+
+      importedFlashcards.add(
+        Flashcard(
+          id: uuid.v4(),
+          question: question,
+          answer: answer,
+          questionImage: null,
+          answerImage: null,
+          questionLanguage: flashcard.questionLanguage,
+          answerLanguage: flashcard.answerLanguage,
+        ),
+      );
+    }
+
+    if (importedFlashcards.isEmpty) return;
+
+    if (replace) {
+      _flashcards = importedFlashcards;
+    } else {
+      _flashcards.addAll(importedFlashcards);
+    }
+
     notifyListeners();
   }
 
@@ -69,88 +115,93 @@ class FlashcardProvider with ChangeNotifier {
       answer: current.answer,
       questionImage: current.questionImage,
       answerImage: current.answerImage,
+      questionLanguage: current.questionLanguage,
+      answerLanguage: current.answerLanguage,
     );
 
     _flashcards.insert(index + 1, duplicated);
     notifyListeners();
   }
 
-  // Tạo thư mục lưu ảnh
-  Future<Directory> getAppImageDirectory() async {
-    final appDocDir = await getApplicationDocumentsDirectory();
-    final imageDirPath = path.join(appDocDir.path, 'imageapplearnenglish');
-    final imageDir = Directory(imageDirPath);
-    if (!await imageDir.exists()) {
-      await imageDir.create(recursive: true);
-    }
-    return imageDir;
+  Future<String> _uploadImageToSupabase({
+    required String flashcardId,
+    required XFile pickedFile,
+  }) async {
+    final file = File(pickedFile.path);
+    final storagePath = pickedFile.name;
+
+    await _supabase.storage
+        .from(_bucketName)
+        .upload(
+          storagePath,
+          file,
+          fileOptions: const FileOptions(upsert: true),
+        );
+
+    return _supabase.storage.from(_bucketName).getPublicUrl(storagePath);
   }
 
-  // Hàm chọn ảnh và tải lên Imgur
+  Future<void> _deleteImageFromSupabase(String? imageUrl) async {
+    if (imageUrl == null || imageUrl.isEmpty) return;
+
+    final marker = '/$_bucketName/';
+    final markerIndex = imageUrl.indexOf(marker);
+    if (markerIndex == -1) return;
+
+    final storagePath = imageUrl.substring(markerIndex + marker.length);
+    if (storagePath.isEmpty) return;
+
+    try {
+      await _supabase.storage.from(_bucketName).remove([storagePath]);
+    } catch (_) {}
+  }
+
+  // Hàm chọn ảnh và tải lên Supabase Storage
   Future<void> pickImage(String id, {required bool isQuestion}) async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
       try {
-        final imageFile = File(pickedFile.path);
-        final imageBytes = await imageFile.readAsBytes();
-        final imageBase64 = base64Encode(imageBytes);
-
-        // Gửi ảnh lên Imgur và lấy URL
-        final url = await uploadImageToImgur(imageBase64);
-
-        // Cập nhật Flashcard với URL ảnh
         final index = _flashcards.indexWhere((fc) => fc.id == id);
         if (index != -1) {
+          final oldImageUrl =
+              isQuestion
+                  ? _flashcards[index].questionImage
+                  : _flashcards[index].answerImage;
+          final url = await _uploadImageToSupabase(
+            flashcardId: id,
+            pickedFile: pickedFile,
+          );
+
           if (isQuestion) {
             _flashcards[index].questionImage = url;
           } else {
             _flashcards[index].answerImage = url;
           }
+
+          await _deleteImageFromSupabase(oldImageUrl);
           notifyListeners();
         }
       } catch (e) {
-        print('Lỗi tải ảnh lên Imgur: $e');
+        debugPrint('Lỗi tải ảnh lên Supabase: $e');
       }
     }
   }
 
-  // Hàm tải ảnh lên Imgur và nhận URL
-  Future<String> uploadImageToImgur(String imageBase64) async {
-    final clientId = '7f778aa3b39f7ab';
-    final headers = {
-      'Authorization': 'Client-ID $clientId',
-      'Content-Type': 'application/json',
-    };
-
-    final body = jsonEncode({'image': imageBase64, 'type': 'base64'});
-
-    final response = await http.post(
-      Uri.parse('https://api.imgur.com/3/upload'),
-      headers: headers,
-      body: body,
-    );
-
-    if (response.statusCode == 200) {
-      final data = jsonDecode(response.body);
-      return data['data']['link']; // Trả về URL của ảnh
-    } else {
-      throw Exception('Không thể tải ảnh lên Imgur');
-    }
-  }
-
   // Xóa ảnh câu hỏi
-  void removeQuestionImage(String id) {
+  Future<void> removeQuestionImage(String id) async {
     final index = _flashcards.indexWhere((fc) => fc.id == id);
     if (index != -1) {
+      await _deleteImageFromSupabase(_flashcards[index].questionImage);
       _flashcards[index].questionImage = null;
       notifyListeners();
     }
   }
 
   // Xóa ảnh câu trả lời
-  void removeAnswerImage(String id) {
+  Future<void> removeAnswerImage(String id) async {
     final index = _flashcards.indexWhere((fc) => fc.id == id);
     if (index != -1) {
+      await _deleteImageFromSupabase(_flashcards[index].answerImage);
       _flashcards[index].answerImage = null;
       notifyListeners();
     }
@@ -161,6 +212,8 @@ class FlashcardProvider with ChangeNotifier {
     required String id,
     String? question,
     String? answer,
+    String? questionLanguage,
+    String? answerLanguage,
   }) {
     final index = _flashcards.indexWhere((fc) => fc.id == id);
     if (index != -1) {
@@ -169,128 +222,17 @@ class FlashcardProvider with ChangeNotifier {
       } else if (answer != null) {
         _flashcards[index].answer = answer;
       }
+      if (questionLanguage != null) {
+        _flashcards[index].questionLanguage = questionLanguage;
+      }
+      if (answerLanguage != null) {
+        _flashcards[index].answerLanguage = answerLanguage;
+      }
       notifyListeners();
     }
   }
 
-  Future<void> updateFlashcardByGemini({required String id}) async {
-    loadingFlashcards.add(id);
-    final index = _flashcards.indexWhere((fc) => fc.id == id);
-    if (index == -1) return;
-
-    final old = _flashcards[index];
-
-    // Lấy danh sách tất cả câu hỏi (từ vựng) hiện có trong flashcards
-    final existingWords = _flashcards.map((fc) => fc.question).toList();
-
-    if (old.answer.isEmpty && old.question.isNotEmpty) {
-      final value = await Gemini.instance.prompt(
-        parts: [
-          Part.text(
-            'Hãy giải thích thật ngắn gọn nghĩa tiếng Việt của từ "${old.question}". Chỉ trả lời nghĩa, không giải thích gì thêm.',
-          ),
-        ],
-      );
-
-      final result = value?.output?.trim();
-      if (result != null && result.isNotEmpty) {
-        _flashcards[index] = Flashcard(
-          id: old.id,
-          question: old.question,
-          answer: result,
-        );
-        notifyListeners();
-      }
-    } else if (old.answer.isNotEmpty && old.question.isEmpty) {
-      final value = await Gemini.instance.prompt(
-        parts: [
-          Part.text(
-            'Hãy tìm một từ vựng tiếng Anh phù hợp với nghĩa tiếng Việt sau: "${old.answer}".Chỉ trả lời duy nhất từ vựng đó, không giải thích gì thêm, không ví dụ, không mô tả.',
-          ),
-        ],
-      );
-
-      final result = value?.output?.trim();
-      if (result != null && result.isNotEmpty) {
-        _flashcards[index] = Flashcard(
-          id: old.id,
-          answer: old.answer,
-          question: result,
-        );
-        notifyListeners();
-      }
-    } else {
-      // Tạo prompt yêu cầu Gemini tránh trùng với các từ vựng hiện có
-      final existingWordsText =
-          existingWords.isEmpty
-              ? ""
-              : "Dưới đây là một số từ vựng đã có. Đảm bảo không sử dụng những từ này khi tạo từ mới: ${existingWords.join(', ')}.";
-
-      final value = await Gemini.instance.prompt(
-        parts: [
-          Part.text(
-            'Hãy tạo một cặp từ vựng tiếng Anh và nghĩa tiếng Việt tương ứng random trong 36000 từ vựng thông dụng. Trả lời theo đúng định dạng: "từ - nghĩa". $existingWordsText .Không giải thích gì thêm .',
-          ),
-        ],
-      );
-
-      final result = value?.output?.trim();
-      if (result != null && result.contains('-')) {
-        final parts = result.split('-').map((e) => e.trim()).toList();
-        if (parts.length == 2) {
-          _flashcards[index] = Flashcard(
-            id: old.id,
-            question: parts[0],
-            answer: parts[1],
-          );
-          notifyListeners();
-        }
-      }
-    }
-
-    await Future.delayed(Duration(milliseconds: 2000));
-
-    loadingFlashcards.remove(id);
-    notifyListeners();
-  }
-
-  bool isFlashcardLoading(String id) {
-    return loadingFlashcards.contains(id);
-  }
-
-  // tạo flashcard with gemini
-  void createFlashcardsFromGemini(String response, bool replace) {
-    final result = response.trim();
-
-    if (result.contains('-')) {
-      final lines = result.split('\n');
-      final newFlashcards =
-          lines
-              .map((line) {
-                final parts = line.split('-').map((e) => e.trim()).toList();
-                if (parts.length == 2) {
-                  return Flashcard(
-                    id: UniqueKey().toString(),
-                    question: parts[0],
-                    answer: parts[1],
-                  );
-                } else {
-                  return null;
-                }
-              })
-              .whereType<Flashcard>()
-              .toList();
-
-      if (replace) {
-        _flashcards.clear();
-      }
-
-      _flashcards.addAll(newFlashcards);
-      notifyListeners();
-    }
-  }
-
-  // save  firebase
+  // save  supabase
 
   Future<String> save_list_flashcard_async({
     required String title,
@@ -318,37 +260,49 @@ class FlashcardProvider with ChangeNotifier {
           return 'Mỗi flashcard phải có cả câu hỏi và câu trả lời!';
         }
       }
+      final user = _supabase.auth.currentUser;
+      if (user == null) {
+        return "Người dùng chưa đăng nhập";
+      }
+      final vocabularyRows =
+          _flashcards.map((flashcard) {
+            return {
+              'user_id': user.id,
+              'word': flashcard.question.trim(),
+              'meaning': flashcard.answer.trim(),
+              'example': '',
+              'level': 1,
+              'question_language': flashcard.questionLanguage,
+              'answer_language': flashcard.answerLanguage,
+              'media': {
+                'questionImage': flashcard.questionImage,
+                'answerImage': flashcard.answerImage,
+              },
+            };
+          }).toList();
 
-      // Tạo đối tượng FlashcardList
-      FlashcardList item = FlashcardList(
-        id: const Uuid().v4(),
-        title: title,
-        description: description ?? '',
-        flashcards: _flashcards,
-        userId: 'local_user',
-      );
+      final insertedVocabulary =
+          await _supabase.from('vocabulary').insert(vocabularyRows).select();
 
-      // Lưu local (offline)
-      LocalFlashcardStore.add(item);
+      final vocabIds =
+          insertedVocabulary
+              .map<int>((item) => item['vocab_id'] as int)
+              .toList();
 
-      // Reset danh sách flashcards
-      var newcard = [
-        Flashcard(
-          id: const Uuid().v4(),
-          question: "",
-          answer: "",
-          questionImage: null,
-          answerImage: null,
-        ),
-        Flashcard(
-          id: const Uuid().v4(),
-          question: "",
-          answer: "",
-          questionImage: null,
-          answerImage: null,
-        ),
-      ];
-      _flashcards = newcard;
+      await _supabase.from('lessons').insert({
+        'skill_id': 1,
+        'user_id': user.id,
+        'title': title.trim(),
+        'type': 'flashcard',
+        'content': {
+          'description': description?.trim() ?? '',
+          'vocab_ids': vocabIds,
+        },
+        'duration_minutes': 0,
+        'level_required': 1,
+      });
+
+      _flashcards = _buildInitialFlashcards();
       notifyListeners();
       return 'Lưu flashcard thành công!';
     } catch (e) {
@@ -389,36 +343,66 @@ class FlashcardProvider with ChangeNotifier {
         }
       }
 
-      // Tạo một đối tượng FlashcardList mới
-      FlashcardList updatedItem = FlashcardList(
-        id: id,
-        title: title,
-        description: description ?? '',
-        flashcards: _flashcards, // Gán lại danh sách flashcard
-        userId: 'local_user',
-      );
+      final user = _supabase.auth.currentUser;
+      if (user == null) {
+        return 'Người dùng chưa đăng nhập';
+      }
 
-      // Cập nhật local (offline)
-      LocalFlashcardStore.update(updatedItem);
+      final vocabIds = <int>[];
 
-      // Reset danh sách flashcards
-      var newcard = [
-        Flashcard(
-          id: const Uuid().v4(),
-          question: "",
-          answer: "",
-          questionImage: null,
-          answerImage: null,
-        ),
-        Flashcard(
-          id: const Uuid().v4(),
-          question: "",
-          answer: "",
-          questionImage: null,
-          answerImage: null,
-        ),
-      ];
-      _flashcards = newcard;
+      for (final flashcard in _flashcards) {
+        final existingVocabId = int.tryParse(flashcard.id);
+        final vocabularyData = {
+          'user_id': user.id,
+          'word': flashcard.question.trim(),
+          'meaning': flashcard.answer.trim(),
+          'example': '',
+          'level': 1,
+          'question_language': flashcard.questionLanguage,
+          'answer_language': flashcard.answerLanguage,
+          'media': {
+            'questionImage': flashcard.questionImage,
+            'answerImage': flashcard.answerImage,
+          },
+        };
+
+        if (existingVocabId != null) {
+          await _supabase
+              .from('vocabulary')
+              .update(vocabularyData)
+              .eq('vocab_id', existingVocabId)
+              .eq('user_id', user.id);
+          vocabIds.add(existingVocabId);
+        } else {
+          final insertedVocabulary =
+              await _supabase
+                  .from('vocabulary')
+                  .insert(vocabularyData)
+                  .select('vocab_id')
+                  .single();
+
+          vocabIds.add(insertedVocabulary['vocab_id'] as int);
+        }
+      }
+
+      final lessonId = int.tryParse(id);
+      if (lessonId == null) {
+        return 'Không tìm thấy mã bộ flashcard hợp lệ!';
+      }
+
+      await _supabase
+          .from('lessons')
+          .update({
+            'title': title.trim(),
+            'content': {
+              'description': description?.trim() ?? '',
+              'vocab_ids': vocabIds,
+            },
+          })
+          .eq('lesson_id', lessonId)
+          .eq('user_id', user.id);
+
+      _flashcards = _buildInitialFlashcards();
       notifyListeners();
 
       return 'Cập nhật flashcard thành công!';

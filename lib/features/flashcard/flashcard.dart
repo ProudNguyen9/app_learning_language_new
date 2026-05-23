@@ -1,0 +1,13 @@
+export 'domain/entities/flashcard.dart';
+export 'domain/entities/list_flashcard.dart';
+export 'presentation/providers/flashcard_provider.dart';
+export 'presentation/screens/create_flashcard_screen.dart';
+export 'presentation/screens/edit_flashcard_screen.dart';
+export 'presentation/screens/flashcard_screen.dart';
+export 'presentation/widgets/flashcard_face_widget.dart';
+export 'presentation/widgets/flashcard_item_widget.dart';
+export 'presentation/widgets/flashcard_nav_button.dart';
+export 'presentation/widgets/flashcard_screen_styles.dart';
+export 'presentation/widgets/flashcard_term_item.dart';
+export 'presentation/widgets/image_picker_button.dart';
+export 'presentation/widgets/study_options_bottom_sheet.dart';

@@ -26,9 +26,10 @@ class AuthProvider with ChangeNotifier {
     _user = await _repository.signIn(email, password);
     notifyListeners();
 
-    Navigator.pushReplacement(
+    Navigator.pushAndRemoveUntil(
       context,
       MaterialPageRoute(builder: (context) => const CenterHome()),
+      (Route<dynamic> route) => false,
     );
   }
 

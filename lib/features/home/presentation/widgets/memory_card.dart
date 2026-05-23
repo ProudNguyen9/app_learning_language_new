@@ -1,5 +1,4 @@
-import 'package:apphoctienganh/features/home/presentation/widgets/net_step_card.dart';
-import 'package:apphoctienganh/features/flashcard/domain/entities/list_flashcard.dart';
+import 'package:apphoctienganh/features/flashcard/flashcard.dart';
 import 'package:flutter/material.dart';
 
 class MemoryCard extends StatefulWidget {
@@ -23,7 +22,11 @@ class _MemoryCardState extends State<MemoryCard> {
         Navigator.push(
           context,
           MaterialPageRoute(
-            builder: (context) => FlashcardScreen(flashcardList: flashcardList),
+            builder:
+                (context) => FlashcardScreen(
+                  flashcardList: flashcardList,
+                  flashcards: [],
+                ),
           ),
         );
       },
