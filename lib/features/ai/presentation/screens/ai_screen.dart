@@ -1,10 +1,30 @@
 import 'dart:math' as math;
 
 import 'package:apphoctienganh/core/theme/app_colors.dart';
+import 'package:apphoctienganh/features/ai/data/datasources/ai_chat_local_data_source.dart';
+import 'package:apphoctienganh/features/ai/data/datasources/ai_persona_local_data_source.dart';
+import 'package:apphoctienganh/features/ai/data/services/ai_voice_chat_service.dart';
+import 'package:apphoctienganh/features/ai/domain/ai_persona.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:gap/gap.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:speech_to_text/speech_to_text.dart' as stt;
+import 'package:uuid/uuid.dart';
+
+IconData _iconFromKey(String iconKey) {
+  switch (iconKey) {
+    case 'faceSmile':
+      return FontAwesomeIcons.faceSmile;
+    case 'faceMeh':
+      return FontAwesomeIcons.faceMeh;
+    case 'heart':
+      return FontAwesomeIcons.heart;
+    default:
+      return FontAwesomeIcons.robot;
+  }
+}
 
 class AiScreen extends StatefulWidget {
   const AiScreen({super.key});
@@ -20,33 +40,73 @@ class _AiScreenState extends State<AiScreen>
     text:
         'Một người bạn luyện tiếng Anh vui vẻ, kiên nhẫn, hay động viên và giải thích dễ hiểu.',
   );
+  String get _baseUrl => _getEnvValue(
+    key: 'AI_OPENAI_BASE_URL',
+    fallback: 'http://10.0.2.2:8317/v1',
+  );
+  String get _apiKey => _getEnvValue(key: 'AI_OPENAI_API_KEY', fallback: '');
+  String get _model =>
+      _getEnvValue(key: 'AI_OPENAI_MODEL', fallback: 'gpt-5.4');
+  String _getEnvValue({required String key, required String fallback}) {
+    try {
+      return dotenv.env[key] ?? fallback;
+    } catch (_) {
+      return fallback;
+    }
+  }
 
   late final AnimationController _animationController;
+  final AiPersonaLocalDataSource _localDataSource = AiPersonaLocalDataSource();
+  final AiChatLocalDataSource _chatLocalDataSource = AiChatLocalDataSource();
+  final AiVoiceChatService _voiceChatService = AiVoiceChatService();
+  final stt.SpeechToText _speechToText = stt.SpeechToText();
 
-  final List<_AiPersonality> _personalities = const [
-    _AiPersonality(
+  String _conversationId = const Uuid().v4();
+  bool _isProcessing = false;
+  String _statusText = 'Nhấn Bắt đầu để AI lắng nghe bạn';
+  String _lastTranscript = '';
+  String _lastReply = '';
+  bool _isSubmittingSpeech = false;
+  bool _isStartingListening = false;
+  String? _speechLocaleId;
+  String? _systemSpeechLocaleId;
+  String? _pendingUserMessage;
+  String? _pendingAssistantReply;
+  bool _hasUnsavedTurn = false;
+
+  final List<AiPersonal> _personalities = const [
+    AiPersonal(
+      id: 'vui_ve',
       title: 'Vui vẻ',
       modeTitle: 'Chế độ Vui vẻ',
       description:
-          'AI sẽ trò chuyện một cách năng động, sử dụng nhiều biểu cảm và khích lệ bạn liên tục trong suốt quá trình luyện tập.',
-      icon: FontAwesomeIcons.faceSmile,
-      color: Color(0xFF3D5CFF),
+          'Nói chuyện tươi sáng, thân thiện và nhiều năng lượng. Phù hợp khi bạn muốn học theo kiểu vui vẻ, đỡ áp lực và được cổ vũ liên tục.',
+      systemPrompt:
+          'Bạn là người bạn đồng hành vui vẻ, hoạt bát và tích cực. Hãy phản hồi ngắn, ấm áp, dễ gần, thường xuyên cổ vũ người học và giữ không khí thoải mái.',
+      iconKey: 'faceSmile',
+      colorValue: 0xFF3D5CFF,
     ),
-    _AiPersonality(
+    AiPersonal(
+      id: 'cuc_suc',
       title: 'Cục súc',
       modeTitle: 'Chế độ Cục súc',
       description:
-          'AI phản hồi ngắn gọn, thẳng vấn đề và thúc bạn học nghiêm túc hơn nhưng vẫn giữ nội dung hữu ích.',
-      icon: FontAwesomeIcons.faceMeh,
-      color: Color(0xFFFF8A3D),
+          'Phản hồi sắc gọn, thẳng ý và ưu tiên sửa sai nhanh. Hợp khi bạn muốn bị thúc học nghiêm túc, ít vòng vo và tập trung vào kết quả.',
+      systemPrompt:
+          'Bạn là người hướng dẫn thẳng tính, kỷ luật và trực diện. Hãy trả lời cực gọn, ưu tiên chỉ ra lỗi chính, sửa câu nhanh và thúc người học tập trung tiến bộ.',
+      iconKey: 'faceMeh',
+      colorValue: 0xFFFF8A3D,
     ),
-    _AiPersonality(
+    AiPersonal(
+      id: 'chan_thanh',
       title: 'Chân thành',
       modeTitle: 'Chế độ Chân thành',
       description:
-          'AI giao tiếp nhẹ nhàng, kiên nhẫn, giải thích kỹ và tập trung động viên bạn tiến bộ từng chút một.',
-      icon: FontAwesomeIcons.heart,
-      color: Color(0xFF7B61FF),
+          'Trò chuyện dịu dàng, lắng nghe và kiên nhẫn giải thích. Phù hợp khi bạn muốn được đồng hành chậm rãi, rõ ràng và có cảm giác được thấu hiểu.',
+      systemPrompt:
+          'Bạn là người bạn chân thành, điềm tĩnh và biết lắng nghe. Hãy giải thích dễ hiểu, sửa lỗi nhẹ nhàng, tạo cảm giác an toàn và động viên người học từng bước.',
+      iconKey: 'heart',
+      colorValue: 0xFF7B61FF,
     ),
   ];
 
@@ -55,8 +115,14 @@ class _AiScreenState extends State<AiScreen>
   String _friendDescription =
       'Một người bạn luyện tiếng Anh vui vẻ, kiên nhẫn, hay động viên và giải thích dễ hiểu.';
 
-  _AiPersonality get _selectedPersonality =>
+  AiPersonal get _selectedPersonality =>
       _personalities[_selectedPersonalityIndex];
+
+  Future<void> _seedDefaultPersonas() async {
+    if (_localDataSource.getPersonas().isEmpty) {
+      await _localDataSource.savePersonas(_personalities);
+    }
+  }
 
   @override
   void initState() {
@@ -65,27 +131,336 @@ class _AiScreenState extends State<AiScreen>
       vsync: this,
       duration: const Duration(milliseconds: 2200),
     );
+    _seedDefaultPersonas();
+    _initializeSpeechDefaults();
   }
 
   @override
   void dispose() {
     _animationController.dispose();
     _friendDescriptionController.dispose();
+    _speechToText.stop();
+    _voiceChatService.dispose();
     super.dispose();
   }
 
-  void _toggleListening() {
+  void _startPulse() {
+    _animationController.repeat();
+  }
+
+  void _stopPulse() {
+    _animationController
+      ..stop()
+      ..reset();
+  }
+
+  Future<void> _toggleListening() async {
+    if (_isListening || _isProcessing) {
+      await _stopInteraction();
+      return;
+    }
+
+    await _startListening();
+  }
+
+  bool _isVietnameseLocale(String? localeId) {
+    if (localeId == null) {
+      return false;
+    }
+
+    final normalized = localeId.toLowerCase().replaceAll('_', '-');
+    return normalized.startsWith('vi');
+  }
+
+  String? _pickPreferredSpeechLocale(List<stt.LocaleName> locales) {
+    for (final locale in locales) {
+      if (_isVietnameseLocale(locale.localeId)) {
+        return locale.localeId;
+      }
+    }
+
+    return locales.isNotEmpty ? locales.first.localeId : null;
+  }
+
+  Future<void> _initializeSpeechDefaults() async {
+    final isAvailable = await _speechToText.initialize();
+    if (!isAvailable) {
+      return;
+    }
+
+    final systemLocale = await _speechToText.systemLocale();
+    final locales = await _speechToText.locales();
+    final preferredLocale =
+        _pickPreferredSpeechLocale(locales) ?? systemLocale?.localeId;
+
+    if (!mounted) return;
     setState(() {
-      _isListening = !_isListening;
+      _systemSpeechLocaleId = systemLocale?.localeId;
+      _speechLocaleId = preferredLocale;
+    });
+  }
+
+  Future<void> _startListening() async {
+    await _speechToText.stop();
+    await _speechToText.cancel();
+    await Future<void>.delayed(const Duration(milliseconds: 250));
+
+    final isAvailable = await _speechToText.initialize(
+      onStatus: _handleSpeechStatus,
+      onError: (error) {
+        _stopPulse();
+        if (!mounted) return;
+        setState(() {
+          _isListening = false;
+          _isProcessing = false;
+          _isSubmittingSpeech = false;
+          _isStartingListening = false;
+          _statusText = 'Không thể nhận giọng nói: ${error.errorMsg}';
+        });
+      },
+    );
+
+    if (!isAvailable) {
+      if (!mounted) return;
+      setState(() {
+        _isListening = false;
+        _isProcessing = false;
+        _isSubmittingSpeech = false;
+        _isStartingListening = false;
+        _statusText = 'Thiết bị không hỗ trợ nhận giọng nói.';
+      });
+      return;
+    }
+
+    final locales = await _speechToText.locales();
+    _speechLocaleId =
+        _pickPreferredSpeechLocale(locales) ??
+        _speechLocaleId ??
+        _systemSpeechLocaleId;
+
+    _startPulse();
+    if (!mounted) return;
+    setState(() {
+      _isListening = true;
+      _isProcessing = false;
+      _isSubmittingSpeech = false;
+      _isStartingListening = true;
+      _statusText = 'Đang lắng nghe...';
+      _lastTranscript = '';
     });
 
-    if (_isListening) {
-      _animationController.repeat();
-    } else {
-      _animationController
-        ..stop()
-        ..reset();
+    await _speechToText.listen(
+      onResult: (result) async {
+        final words = result.recognizedWords.trim();
+
+        if (!mounted) return;
+        setState(() {
+          _lastTranscript = words;
+        });
+
+        if (result.finalResult &&
+            words.isNotEmpty &&
+            !_isSubmittingSpeech &&
+            !_isProcessing) {
+          _isSubmittingSpeech = true;
+          await _handleRecognizedSpeech(words);
+        }
+      },
+      partialResults: true,
+      cancelOnError: true,
+      listenFor: const Duration(seconds: 30),
+      pauseFor: const Duration(seconds: 3),
+      localeId: _speechLocaleId,
+    );
+  }
+
+  void _handleSpeechStatus(String status) {
+    if (!mounted) return;
+
+    if (status == 'listening') {
+      setState(() {
+        _isStartingListening = false;
+        _statusText = 'Đang lắng nghe...';
+      });
+      return;
     }
+
+    if ((status == 'done' || status == 'notListening') &&
+        _isListening &&
+        !_isSubmittingSpeech &&
+        !_isProcessing &&
+        !_isStartingListening &&
+        _lastTranscript.trim().isEmpty) {
+      _stopPulse();
+      setState(() {
+        _isListening = false;
+        _statusText =
+            _isVietnameseLocale(_speechLocaleId)
+                ? 'Không nghe rõ tiếng Việt, hãy thử nói chậm và rõ hơn.'
+                : 'Không nghe rõ, hãy thử nói lại.';
+      });
+    }
+  }
+
+  String? _inferSpeechLocaleId(String text) {
+    final value = text.trim();
+    if (value.isEmpty) {
+      return _speechLocaleId ?? _systemSpeechLocaleId;
+    }
+
+    if (RegExp(
+      r'[ăâđêôơưĂÂĐÊÔƠƯáàảãạắằẳẵặấầẩẫậéèẻẽẹếềểễệóòỏõọốồổỗộớờởỡợúùủũụứừửữựýỳỷỹỵ]',
+    ).hasMatch(value)) {
+      return _speechLocaleId != null && _isVietnameseLocale(_speechLocaleId)
+          ? _speechLocaleId
+          : 'vi_VN';
+    }
+
+    if (RegExp(r'[ぁ-ゟ゠-ヿ一-龯]').hasMatch(value)) {
+      return 'ja_JP';
+    }
+
+    if (RegExp(r'[가-힣]').hasMatch(value)) {
+      return 'ko_KR';
+    }
+
+    if (RegExp(r'[\u4E00-\u9FFF]').hasMatch(value)) {
+      return 'zh_CN';
+    }
+
+    if (RegExp(r'[A-Za-z]').hasMatch(value)) {
+      return 'en_US';
+    }
+
+    return _speechLocaleId ?? _systemSpeechLocaleId;
+  }
+
+  Future<void> _handleRecognizedSpeech(String text) async {
+    _stopPulse();
+    await _speechToText.stop();
+
+    final inferredSpeechLocaleId = _inferSpeechLocaleId(text);
+
+    if (!mounted) return;
+    setState(() {
+      _isListening = false;
+      _isProcessing = true;
+      _isStartingListening = false;
+      if (_isVietnameseLocale(inferredSpeechLocaleId)) {
+        _speechLocaleId = inferredSpeechLocaleId;
+      }
+      _statusText = 'AI đang suy nghĩ...';
+    });
+
+    try {
+      final result = await _voiceChatService.sendMessage(
+        baseUrl: _baseUrl,
+        apiKey: _apiKey,
+        model: _model,
+        persona: _selectedPersonality,
+        friendDescription: _friendDescription,
+        conversationId: _conversationId,
+        userMessage: text,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _lastReply = result.reply;
+        _pendingUserMessage = text;
+        _pendingAssistantReply = result.reply;
+        _hasUnsavedTurn = true;
+        _statusText = 'AI đang phản hồi bằng giọng nói...';
+      });
+
+      await _voiceChatService.speakAndWait(
+        text: result.reply,
+        language: result.language,
+        emotion: result.emotion,
+      );
+
+      if (!mounted) return;
+      setState(() {
+        _isProcessing = false;
+        _isSubmittingSpeech = false;
+        _isStartingListening = false;
+        _statusText =
+            result.shouldListenAgain
+                ? 'Đang chuẩn bị lắng nghe lại...'
+                : 'Nhấn Bắt đầu để tiếp tục trò chuyện';
+      });
+
+      if (result.shouldListenAgain) {
+        await Future<void>.delayed(const Duration(milliseconds: 350));
+        await _startListening();
+      }
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _isProcessing = false;
+        _isSubmittingSpeech = false;
+        _isStartingListening = false;
+        _statusText = 'Có lỗi xảy ra: $error';
+      });
+
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Lỗi AI voice chat: $error')));
+    }
+  }
+
+  Future<void> _stopInteraction() async {
+    await _speechToText.stop();
+    await _speechToText.cancel();
+    await _voiceChatService.stopSpeaking();
+    _stopPulse();
+
+    final shouldSaveTurn =
+        _hasUnsavedTurn &&
+        (_pendingUserMessage?.trim().isNotEmpty ?? false) &&
+        (_pendingAssistantReply?.trim().isNotEmpty ?? false);
+
+    if (shouldSaveTurn) {
+      await _voiceChatService.saveConversationTurn(
+        conversationId: _conversationId,
+        persona: _selectedPersonality,
+        userMessage: _pendingUserMessage!,
+        assistantReply: _pendingAssistantReply!,
+      );
+    }
+
+    if (!mounted) return;
+    setState(() {
+      _isListening = false;
+      _isProcessing = false;
+      _isSubmittingSpeech = false;
+      _isStartingListening = false;
+      _pendingUserMessage = null;
+      _pendingAssistantReply = null;
+      _hasUnsavedTurn = false;
+      _statusText = 'Đã dừng. Nhấn Bắt đầu để trò chuyện tiếp';
+    });
+  }
+
+  Future<void> _clearAiMemory() async {
+    await _chatLocalDataSource.clearAllMessages();
+    _conversationId = const Uuid().v4();
+
+    if (!mounted) return;
+
+    setState(() {
+      _lastTranscript = '';
+      _lastReply = '';
+      _pendingUserMessage = null;
+      _pendingAssistantReply = null;
+      _hasUnsavedTurn = false;
+      _statusText = 'Đã xóa bộ nhớ AI. Cuộc trò chuyện mới đã được tạo.';
+    });
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Đã xóa toàn bộ lịch sử trò chuyện của AI.'),
+      ),
+    );
   }
 
   void _openPersonalitySettings() {
@@ -276,8 +651,35 @@ class _AiScreenState extends State<AiScreen>
                           width: double.infinity,
                           height: 52,
                           child: ElevatedButton(
-                            onPressed: () {
+                            onPressed: () async {
+                              await _clearAiMemory();
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red[300],
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(18),
+                              ),
+                            ),
+                            child: Text(
+                              'Xóa bộ nhớ AI của bạn',
+                              style: GoogleFonts.plusJakartaSans(
+                                fontSize: 15,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                          ),
+                        ),
+                        const Gap(18),
+                        SizedBox(
+                          width: double.infinity,
+                          height: 52,
+                          child: ElevatedButton(
+                            onPressed: () async {
                               final value = descriptionController.text.trim();
+                              final selectedPersona =
+                                  _personalities[temporaryIndex];
                               setState(() {
                                 _selectedPersonalityIndex = temporaryIndex;
                                 _friendDescription =
@@ -287,7 +689,9 @@ class _AiScreenState extends State<AiScreen>
                                 _friendDescriptionController.text =
                                     _friendDescription;
                               });
-                              descriptionController.dispose();
+                              await _localDataSource.saveSelectedPersona(
+                                selectedPersona,
+                              );
                               Navigator.pop(context);
                             },
                             style: ElevatedButton.styleFrom(
@@ -342,7 +746,9 @@ class _AiScreenState extends State<AiScreen>
                   Row(
                     children: [
                       IconButton(
-                        onPressed: () {},
+                        onPressed: () {
+                          Navigator.of(context).maybePop();
+                        },
                         icon: Icon(
                           Icons.arrow_back_ios_new_rounded,
                           size: 18,
@@ -375,44 +781,49 @@ class _AiScreenState extends State<AiScreen>
                     ],
                   ),
                   const Gap(28),
-                  if (_isListening)
-                    Center(
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 14,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.white.withOpacity(0.86),
-                          borderRadius: BorderRadius.circular(999),
-                          border: Border.all(color: const Color(0xFFE6DFFC)),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Container(
-                              width: 8,
-                              height: 8,
-                              decoration: BoxDecoration(
-                                color: ColorSetting.colorprimary,
-                                shape: BoxShape.circle,
-                              ),
+                  Center(
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 8,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withOpacity(0.86),
+                        borderRadius: BorderRadius.circular(999),
+                        border: Border.all(color: const Color(0xFFE6DFFC)),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 8,
+                            height: 8,
+                            decoration: BoxDecoration(
+                              color:
+                                  _isListening
+                                      ? ColorSetting.colorprimary
+                                      : _isProcessing
+                                      ? const Color(0xFFFF8A3D)
+                                      : const Color(0xFF7B61FF),
+                              shape: BoxShape.circle,
                             ),
-                            const Gap(8),
-                            Text(
-                              'Đang lắng nghe...',
+                          ),
+                          const Gap(8),
+                          Flexible(
+                            child: Text(
+                              _statusText,
+                              textAlign: TextAlign.center,
                               style: GoogleFonts.lexend(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
                                 color: const Color(0xFF5F5A93),
                               ),
                             ),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
-                    )
-                  else
-                    const SizedBox(height: 34),
+                    ),
+                  ),
                   const Gap(24),
                   Center(
                     child: Transform.scale(
@@ -443,12 +854,14 @@ class _AiScreenState extends State<AiScreen>
                               gradient: LinearGradient(
                                 colors: [
                                   ColorSetting.colorprimary,
-                                  personality.color,
+                                  Color(personality.colorValue),
                                 ],
                               ),
                               boxShadow: [
                                 BoxShadow(
-                                  color: personality.color.withOpacity(0.34),
+                                  color: Color(
+                                    personality.colorValue,
+                                  ).withOpacity(0.34),
                                   blurRadius: 30,
                                   offset: const Offset(0, 18),
                                 ),
@@ -469,6 +882,7 @@ class _AiScreenState extends State<AiScreen>
                   Center(
                     child: _AiListeningButton(
                       isListening: _isListening,
+                      isProcessing: _isProcessing,
                       onTap: _toggleListening,
                     ),
                   ),
@@ -527,6 +941,21 @@ class _AiScreenState extends State<AiScreen>
                     personality: personality,
                     friendDescription: _friendDescription,
                   ),
+                  const Gap(16),
+                  if (_lastTranscript.isNotEmpty)
+                    _ConversationPreviewCard(
+                      title: 'Bạn vừa nói',
+                      icon: Icons.mic_rounded,
+                      color: const Color(0xFF3D5CFF),
+                      content: _lastTranscript,
+                    ),
+                  if (_lastTranscript.isNotEmpty) const Gap(12),
+                  if (_lastReply.isNotEmpty)
+                    _ConversationPreviewCard(
+                      title: 'AI trả lời',
+                      color: Color(personality.colorValue),
+                      content: _lastReply,
+                    ),
                 ],
               ),
             );
@@ -537,22 +966,6 @@ class _AiScreenState extends State<AiScreen>
   }
 }
 
-class _AiPersonality {
-  const _AiPersonality({
-    required this.title,
-    required this.modeTitle,
-    required this.description,
-    required this.icon,
-    required this.color,
-  });
-
-  final String title;
-  final String modeTitle;
-  final String description;
-  final IconData icon;
-  final Color color;
-}
-
 class _PersonalityOptionCard extends StatelessWidget {
   const _PersonalityOptionCard({
     required this.personality,
@@ -560,7 +973,7 @@ class _PersonalityOptionCard extends StatelessWidget {
     required this.onTap,
   });
 
-  final _AiPersonality personality;
+  final AiPersonal personality;
   final bool isSelected;
   final VoidCallback onTap;
 
@@ -583,7 +996,7 @@ class _PersonalityOptionCard extends StatelessWidget {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             FaIcon(
-              personality.icon,
+              _iconFromKey(personality.iconKey),
               size: 18,
               color:
                   isSelected
@@ -617,7 +1030,7 @@ class _PersonalityDescriptionCard extends StatelessWidget {
     required this.friendDescription,
   });
 
-  final _AiPersonality personality;
+  final AiPersonal personality;
   final String friendDescription;
 
   @override
@@ -701,6 +1114,74 @@ class _PersonalityDescriptionCard extends StatelessWidget {
   }
 }
 
+class _ConversationPreviewCard extends StatelessWidget {
+  const _ConversationPreviewCard({
+    required this.title,
+    this.icon,
+    required this.color,
+    required this.content,
+  });
+
+  final String title;
+  final IconData? icon;
+  final Color color;
+  final String content;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE5DDF8)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (icon != null) ...[
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: color.withOpacity(0.10),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const Gap(12),
+          ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF2D2755),
+                  ),
+                ),
+                const Gap(6),
+                Text(
+                  content,
+                  style: GoogleFonts.lexend(
+                    fontSize: 12,
+                    height: 1.5,
+                    color: const Color(0xFF5D5779),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _PulseCircle extends StatelessWidget {
   const _PulseCircle({required this.size, required this.color});
 
@@ -718,15 +1199,24 @@ class _PulseCircle extends StatelessWidget {
 }
 
 class _AiListeningButton extends StatelessWidget {
-  const _AiListeningButton({required this.isListening, required this.onTap});
+  const _AiListeningButton({
+    required this.isListening,
+    required this.isProcessing,
+    required this.onTap,
+  });
 
   final bool isListening;
+  final bool isProcessing;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     final backgroundColor =
-        isListening ? const Color(0xFFC94B4B) : ColorSetting.colorprimary;
+        isListening
+            ? const Color(0xFFC94B4B)
+            : isProcessing
+            ? const Color(0xFF7B61FF)
+            : ColorSetting.colorprimary;
 
     return GestureDetector(
       onTap: onTap,
@@ -748,13 +1238,21 @@ class _AiListeningButton extends StatelessWidget {
           mainAxisSize: MainAxisSize.min,
           children: [
             Icon(
-              isListening ? Icons.stop_rounded : Icons.play_arrow_rounded,
+              isListening
+                  ? Icons.stop_rounded
+                  : isProcessing
+                  ? Icons.graphic_eq_rounded
+                  : Icons.play_arrow_rounded,
               color: Colors.white,
               size: 22,
             ),
             const Gap(8),
             Text(
-              isListening ? 'Dừng' : 'Bắt đầu',
+              isListening
+                  ? 'Dừng'
+                  : isProcessing
+                  ? 'AI đang trả lời'
+                  : 'Bắt đầu',
               style: GoogleFonts.plusJakartaSans(
                 fontSize: 15,
                 fontWeight: FontWeight.w800,

@@ -395,7 +395,7 @@ Widget momentumStreakCard() {
                     border: Border.all(color: Colors.white.withOpacity(0.18)),
                   ),
                   child: const Text(
-                    'days active',
+                    'ngày hoạt động',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 8,
