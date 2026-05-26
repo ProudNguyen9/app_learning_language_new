@@ -33,13 +33,8 @@ class Card_skill extends StatelessWidget {
               color: Colors.white,
               borderRadius: BorderRadius.circular(24),
               border: Border.all(color: const Color(0xFFF1F3F8), width: 1),
-              boxShadow: const [
-                BoxShadow(
-                  color: Color(0x140F172A),
-                  blurRadius: 20,
-                  offset: Offset(0, 10),
-                ),
-              ],
+             
+             
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

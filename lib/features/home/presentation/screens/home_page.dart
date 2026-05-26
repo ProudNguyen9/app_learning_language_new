@@ -1,6 +1,7 @@
 import 'package:apphoctienganh/core/theme/app_colors.dart';
 import 'package:apphoctienganh/features/auth/presentation/screens/profile_screen.dart';
 import 'package:apphoctienganh/features/home/presentation/providers/home_provider.dart';
+import 'package:apphoctienganh/features/skill_speaking/presentation/screens/choose_type_speaking.dart';
 import 'package:apphoctienganh/shared/widgets/widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -52,126 +53,137 @@ class _HomePageState extends State<HomePage> {
         body: SafeArea(
           child: SingleChildScrollView(
             padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Row(
-                      children: [
-                        GestureDetector(
+            child: Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.of(context).push(
+                                MaterialPageRoute(
+                                  builder:
+                                      (_) => const ProfileScreen(
+                                        showBottomNavigation: false,
+                                      ),
+                                ),
+                              );
+                            },
+                            child: ClipOval(
+                              child: Image.asset(
+                                'assets/uselogo.jpg',
+                                width: 40,
+                                height: 40,
+                                fit: BoxFit.cover,
+                              ),
+                            ),
+                          ),
+                          const Gap(8),
+                          Text(
+                            'Anh Lish',
+                            style: GoogleFonts.plusJakartaSans(
+                              fontWeight: FontWeight.w700,
+                              fontSize: 20,
+                              color: ColorSetting.colorprimary,
+                            ),
+                          ),
+                        ],
+                      ),
+                      IconButton(
+                        onPressed: () {},
+                        icon: Icon(
+                          Icons.notifications_active_outlined,
+                          color: ColorSetting.colorprimary,
+                        ),
+                      ),
+
+                    ],
+                  ),
+                  const Gap(10),
+                  momentumStreakCard(),
+                  const SizedBox(height: 14),
+                  const SectionHeading(text: 'HỌC GẦN ĐÂY'),
+                  const SizedBox(height: 5),
+                  const _TimeFilterTabs(
+                    labels: ['Mới đây', 'Hôm qua', 'Tuần trước'],
+                  ),
+                  const Gap(15),
+                  if (recentFlashcardLists.isNotEmpty)
+                    cardVocal()
+                  else
+                    _EmptyRecentFlashcardCard(),
+                  const Gap(15),
+                  cardEndingSounds(),
+                  const Gap(15),
+                  const SectionHeading(text: 'CÁC HỌC PHẦN'),
+                  const Gap(15),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Card_skill(
+                          title: 'Đọc hiểu',
+                          subtitle: 'Đọc bài viết và đoạn văn',
+                          icon: Icons.menu_book_outlined,
+                          iconcolor: const Color(0xFF177E9B),
+                          iconBackgroundColor: const Color(0xFFEAF8FC),
+                          onTap: null,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Card_skill(
+                          title: 'Viết',
+                          subtitle: 'Luyện viết câu và diễn đạt',
+                          icon: Icons.edit_note,
+                          iconcolor: const Color(0xFFE66A8D),
+                          iconBackgroundColor: const Color(0xFFFFEEF3),
+                          onTap: null,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Card_skill(
+                          title: 'Nói',
+                          subtitle: 'Cải thiện phát âm mỗi ngày',
+                          icon: Icons.mic_none_rounded,
+                          iconcolor: const Color(0xFF7A52CC),
+                          iconBackgroundColor: const Color(0xFFF1EAFE),
                           onTap: () {
-                            Navigator.of(context).push(
+                            Navigator.push(
+                              context,
                               MaterialPageRoute(
-                                builder:
-                                    (_) => const ProfileScreen(
-                                      showBottomNavigation: false,
-                                    ),
+                                builder: (context) => ChooseTypeSpeaking(),
                               ),
                             );
                           },
-                          child: ClipOval(
-                            child: Image.asset(
-                              'assets/uselogo.jpg',
-                              width: 40,
-                              height: 40,
-                              fit: BoxFit.cover,
-                            ),
-                          ),
                         ),
-                        const Gap(8),
-                        Text(
-                          'Anh Lish',
-                          style: GoogleFonts.plusJakartaSans(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 20,
-                            color: ColorSetting.colorprimary,
-                          ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Card_skill(
+                          title: 'Nghe',
+                          subtitle: 'Luyện nghe qua âm thanh',
+                          icon: Icons.headphones,
+                          iconcolor: const Color(0xFF3A5BDB),
+                          iconBackgroundColor: const Color(0xFFE9EEFF),
+                          onTap: null,
                         ),
-                      ],
-                    ),
-                    IconButton(
-                      onPressed: () {},
-                      icon: Icon(
-                        Icons.notifications_active_outlined,
-                        color: ColorSetting.colorprimary,
                       ),
-                    ),
-                  ],
-                ),
-                const Gap(10),
-                momentumStreakCard(),
-                const SizedBox(height: 14),
-                const SectionHeading(text: 'HỌC GẦN ĐÂY'),
-                const SizedBox(height: 5),
-                const _TimeFilterTabs(
-                  labels: ['Mới đây', 'Hôm qua', 'Tuần trước'],
-                ),
-                const Gap(15),
-                if (recentFlashcardLists.isNotEmpty)
-                  cardVocal()
-                else
-                  _EmptyRecentFlashcardCard(),
-                const Gap(15),
-                cardEndingSounds(),
-                const Gap(15),
-                const SectionHeading(text: 'CÁC HỌC PHẦN'),
-                const Gap(15),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Card_skill(
-                        title: 'Đọc hiểu',
-                        subtitle: 'Đọc bài viết và đoạn văn',
-                        icon: Icons.menu_book_outlined,
-                        iconcolor: const Color(0xFF177E9B),
-                        iconBackgroundColor: const Color(0xFFEAF8FC),
-                        onTap: null,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Card_skill(
-                        title: 'Viết',
-                        subtitle: 'Luyện viết câu và diễn đạt',
-                        icon: Icons.edit_note,
-                        iconcolor: const Color(0xFFE66A8D),
-                        iconBackgroundColor: const Color(0xFFFFEEF3),
-                        onTap: null,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Card_skill(
-                        title: 'Nói',
-                        subtitle: 'Cải thiện phát âm mỗi ngày',
-                        icon: Icons.mic_none_rounded,
-                        iconcolor: const Color(0xFF7A52CC),
-                        iconBackgroundColor: const Color(0xFFF1EAFE),
-                        onTap: null,
-                      ),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Card_skill(
-                        title: 'Nghe',
-                        subtitle: 'Luyện nghe qua âm thanh',
-                        icon: Icons.headphones,
-                        iconcolor: const Color(0xFF3A5BDB),
-                        iconBackgroundColor: const Color(0xFFE9EEFF),
-                        onTap: null,
-                      ),
-                    ),
-                  ],
-                ),
+                    ],
+                  ),
 
-                const SizedBox(height: 24),
-              ],
+                  const SizedBox(height: 24),
+                ],
+              ),
             ),
           ),
         ),

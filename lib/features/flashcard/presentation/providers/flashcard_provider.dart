@@ -1,27 +1,20 @@
 import 'dart:io';
+
 import 'package:apphoctienganh/features/flashcard/domain/entities/flashcard.dart';
+import 'package:apphoctienganh/features/flashcard/domain/services/flashcard_business.dart';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'package:uuid/uuid.dart';
 
 class FlashcardProvider with ChangeNotifier {
-  List<Flashcard> _flashcards = [
-    Flashcard(
-      id: const Uuid().v4(),
-      question: "",
-      answer: "",
-      questionImage: null,
-      answerImage: null,
-    ),
-    Flashcard(
-      id: const Uuid().v4(),
-      question: "",
-      answer: "",
-      questionImage: null,
-      answerImage: null,
-    ),
-  ];
+  FlashcardProvider({FlashcardBusiness? business})
+    : _business = business ?? const FlashcardBusiness(),
+      _flashcards =
+          (business ?? const FlashcardBusiness()).buildInitialFlashcards();
+
+  final FlashcardBusiness _business;
+  List<Flashcard> _flashcards;
+
   List<Flashcard> get flashcardList => _flashcards;
   set flashcardListset(List<Flashcard> newList) {
     _flashcards = newList;
@@ -32,94 +25,30 @@ class FlashcardProvider with ChangeNotifier {
   static const String _bucketName = 'img_flashcard';
 
   List<Flashcard> _buildInitialFlashcards() {
-    return [
-      Flashcard(
-        id: const Uuid().v4(),
-        question: "",
-        answer: "",
-        questionImage: null,
-        answerImage: null,
-      ),
-      Flashcard(
-        id: const Uuid().v4(),
-        question: "",
-        answer: "",
-        questionImage: null,
-        answerImage: null,
-      ),
-    ];
+    return _business.buildInitialFlashcards();
   }
 
-  // add new flashcard
   void addFlashcard() {
-    _flashcards.add(
-      Flashcard(
-        id: const Uuid().v4(),
-        question: "",
-        answer: "",
-        questionImage: null,
-        answerImage: null,
-      ),
-    );
+    _flashcards = [..._flashcards, _business.createEmptyFlashcard()];
     notifyListeners();
   }
 
   void importFlashcards(List<Flashcard> flashcards, {required bool replace}) {
-    final uuid = const Uuid();
-    final importedFlashcards = <Flashcard>[];
-
-    for (final flashcard in flashcards) {
-      final question = flashcard.question.trim();
-      final answer = flashcard.answer.trim();
-
-      if (question.isEmpty && answer.isEmpty) continue;
-
-      importedFlashcards.add(
-        Flashcard(
-          id: uuid.v4(),
-          question: question,
-          answer: answer,
-          questionImage: null,
-          answerImage: null,
-          questionLanguage: flashcard.questionLanguage,
-          answerLanguage: flashcard.answerLanguage,
-        ),
-      );
-    }
-
-    if (importedFlashcards.isEmpty) return;
-
-    if (replace) {
-      _flashcards = importedFlashcards;
-    } else {
-      _flashcards.addAll(importedFlashcards);
-    }
-
+    _flashcards = _business.importFlashcards(
+      _flashcards,
+      flashcards,
+      replace: replace,
+    );
     notifyListeners();
   }
 
   void deleteFlashcardById(String id) {
-    if (_flashcards.length <= 2) return;
-    _flashcards.removeWhere((flashcard) => flashcard.id == id);
+    _flashcards = _business.deleteFlashcardById(_flashcards, id);
     notifyListeners();
   }
 
   void duplicateFlashcardById(String id) {
-    final index = _flashcards.indexWhere((fc) => fc.id == id);
-    if (index == -1) return;
-
-    final current = _flashcards[index];
-    final duplicated = Flashcard(
-      id: const Uuid().v4(),
-      question: current.question,
-      answer: current.answer,
-      questionImage: current.questionImage,
-      answerImage: current.answerImage,
-      questionLanguage: current.questionLanguage,
-      answerLanguage: current.answerLanguage,
-    );
-
-    _flashcards.insert(index + 1, duplicated);
+    _flashcards = _business.duplicateFlashcardById(_flashcards, id);
     notifyListeners();
   }
 
@@ -156,7 +85,6 @@ class FlashcardProvider with ChangeNotifier {
     } catch (_) {}
   }
 
-  // Hàm chọn ảnh và tải lên Supabase Storage
   Future<void> pickImage(String id, {required bool isQuestion}) async {
     final pickedFile = await _picker.pickImage(source: ImageSource.gallery);
     if (pickedFile != null) {
@@ -187,7 +115,6 @@ class FlashcardProvider with ChangeNotifier {
     }
   }
 
-  // Xóa ảnh câu hỏi
   Future<void> removeQuestionImage(String id) async {
     final index = _flashcards.indexWhere((fc) => fc.id == id);
     if (index != -1) {
@@ -197,7 +124,6 @@ class FlashcardProvider with ChangeNotifier {
     }
   }
 
-  // Xóa ảnh câu trả lời
   Future<void> removeAnswerImage(String id) async {
     final index = _flashcards.indexWhere((fc) => fc.id == id);
     if (index != -1) {
@@ -207,7 +133,6 @@ class FlashcardProvider with ChangeNotifier {
     }
   }
 
-  //  save  onchange thuật ngữ và bản dịch
   void updateFlashcardContent({
     required String id,
     String? question,
@@ -232,37 +157,22 @@ class FlashcardProvider with ChangeNotifier {
     }
   }
 
-  // save  supabase
-
   Future<String> save_list_flashcard_async({
     required String title,
     String? description,
   }) async {
     try {
-      // Kiểm tra xem _flashcards có dữ liệu hay không
-      if (_flashcards.isEmpty) {
-        return 'Danh sách flashcard không được trống!';
+      final validation = _business.validateFlashcardList(
+        flashcards: _flashcards,
+        title: title,
+      );
+      if (validation != null) {
+        return validation;
       }
 
-      // Kiểm tra số lượng flashcard
-      if (_flashcards.length < 2) {
-        return 'Cần ít nhất 2 flashcard!';
-      }
-
-      // Kiểm tra xem title có hợp lệ không
-      if (title.isEmpty) {
-        return 'Tiêu đề không thể trống!';
-      }
-
-      // Duyệt qua từng flashcard và kiểm tra question và answer
-      for (var flashcard in _flashcards) {
-        if (flashcard.question.isEmpty || flashcard.answer.isEmpty) {
-          return 'Mỗi flashcard phải có cả câu hỏi và câu trả lời!';
-        }
-      }
       final user = _supabase.auth.currentUser;
       if (user == null) {
-        return "Người dùng chưa đăng nhập";
+        return 'Người dùng chưa đăng nhập';
       }
       final vocabularyRows =
           _flashcards.map((flashcard) {
@@ -310,7 +220,6 @@ class FlashcardProvider with ChangeNotifier {
     }
   }
 
-  // cho edit
   void loadData(List<Flashcard> flashcards) {
     flashcardListset = flashcards;
   }
@@ -321,26 +230,12 @@ class FlashcardProvider with ChangeNotifier {
     String? description,
   }) async {
     try {
-      // Kiểm tra danh sách flashcard có rỗng không
-      if (_flashcards.isEmpty) {
-        return 'Danh sách flashcard không được trống!';
-      }
-
-      // Kiểm tra số lượng flashcard
-      if (_flashcards.length < 2) {
-        return 'Cần ít nhất 2 flashcard!';
-      }
-
-      // Kiểm tra tiêu đề
-      if (title.isEmpty) {
-        return 'Tiêu đề không thể trống!';
-      }
-
-      // Kiểm tra từng flashcard có đầy đủ câu hỏi và câu trả lời không
-      for (var flashcard in _flashcards) {
-        if (flashcard.question.isEmpty || flashcard.answer.isEmpty) {
-          return 'Mỗi flashcard phải có cả câu hỏi và câu trả lời!';
-        }
+      final validation = _business.validateFlashcardList(
+        flashcards: _flashcards,
+        title: title,
+      );
+      if (validation != null) {
+        return validation;
       }
 
       final user = _supabase.auth.currentUser;

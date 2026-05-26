@@ -1,4 +1,6 @@
 import 'package:apphoctienganh/features/auth/data/repositories/auth_repository.dart';
+import 'package:apphoctienganh/features/auth/domain/entities/user_profile.dart';
+import 'package:apphoctienganh/features/auth/domain/repositories/auth_repository.dart';
 import 'package:apphoctienganh/features/auth/presentation/screens/login_screen.dart';
 import 'package:apphoctienganh/features/auth/presentation/screens/register_screen.dart';
 import 'package:apphoctienganh/features/auth/presentation/screens/send_email_password_screen.dart';
@@ -11,10 +13,9 @@ class AuthProvider with ChangeNotifier {
 
   final AuthRepository _repository;
 
-  Map<String, dynamic>? _user;
-  Map<String, dynamic>? get user => _user;
+  UserProfile? _user;
+  UserProfile? get user => _user;
 
-  //  hide password in client
   bool _isObscure = true;
   bool get isObscure => _isObscure;
 
@@ -33,7 +34,6 @@ class AuthProvider with ChangeNotifier {
     );
   }
 
-  // Đăng ký tài khoản mới
   Future<void> registerAccount(
     String email,
     String password,
@@ -60,34 +60,30 @@ class AuthProvider with ChangeNotifier {
     );
   }
 
-  // Đăng xuất khỏi Google cả  phần email
   Future<void> signOut(BuildContext context) async {
     try {
       await _repository.signOut();
       _user = _repository.getCurrentUserProfile();
       notifyListeners();
 
-      // Điều hướng tường minh về màn hình đăng nhập
       Navigator.pushAndRemoveUntil(
         context,
         MaterialPageRoute(builder: (context) => const LoginScreen()),
-        (Route<dynamic> route) => false, // Xóa toàn bộ stack
+        (Route<dynamic> route) => false,
       );
     } catch (e) {
       print('Đăng xuất thất bại: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Có lỗi xảy ra khi đăng xuất!')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Có lỗi xảy ra khi đăng xuất!')),
+      );
     }
   }
 
-  // method hide  password
   void toggleObscure() {
     _isObscure = !_isObscure;
     notifyListeners();
   }
 
-  // Phương thức gửi email reset mật khẩu
   Future<void> sendResetPasswordEmail(
     String email,
     BuildContext context,
@@ -100,7 +96,6 @@ class AuthProvider with ChangeNotifier {
     );
   }
 
-  // Đăng nhập giả lập với Google (UI local)
   Future<bool> signInWithGoogle() async {
     final success = await _repository.signInWithGoogle();
     if (!success) return false;
@@ -110,8 +105,7 @@ class AuthProvider with ChangeNotifier {
     return success;
   }
 
-  // lấy profile
-  Map<String, dynamic>? getCurrentUserProfile() {
+  UserProfile? getCurrentUserProfile() {
     return _repository.getCurrentUserProfile();
   }
 }

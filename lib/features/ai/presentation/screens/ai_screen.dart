@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math' as math;
 
 import 'package:apphoctienganh/core/theme/app_colors.dart';
@@ -73,6 +74,7 @@ class _AiScreenState extends State<AiScreen>
   String? _pendingUserMessage;
   String? _pendingAssistantReply;
   bool _hasUnsavedTurn = false;
+  Timer? _submitSpeechTimer;
 
   final List<AiPersonal> _personalities = const [
     AiPersonal(
@@ -137,6 +139,7 @@ class _AiScreenState extends State<AiScreen>
 
   @override
   void dispose() {
+    _submitSpeechTimer?.cancel();
     _animationController.dispose();
     _friendDescriptionController.dispose();
     _speechToText.stop();
@@ -201,6 +204,7 @@ class _AiScreenState extends State<AiScreen>
   }
 
   Future<void> _startListening() async {
+    _submitSpeechTimer?.cancel();
     await _speechToText.stop();
     await _speechToText.cancel();
     await Future<void>.delayed(const Duration(milliseconds: 250));
@@ -258,20 +262,41 @@ class _AiScreenState extends State<AiScreen>
           _lastTranscript = words;
         });
 
-        if (result.finalResult &&
-            words.isNotEmpty &&
-            !_isSubmittingSpeech &&
-            !_isProcessing) {
-          _isSubmittingSpeech = true;
-          await _handleRecognizedSpeech(words);
+        if (words.isEmpty || _isSubmittingSpeech || _isProcessing) {
+          return;
         }
+
+        _scheduleSpeechSubmission(words, immediate: result.finalResult);
       },
       partialResults: true,
       cancelOnError: true,
-      listenFor: const Duration(seconds: 30),
-      pauseFor: const Duration(seconds: 3),
+      listenFor: const Duration(seconds: 60),
+      pauseFor: const Duration(seconds: 5),
       localeId: _speechLocaleId,
     );
+  }
+
+  void _scheduleSpeechSubmission(String words, {bool immediate = false}) {
+    _submitSpeechTimer?.cancel();
+
+    final delay =
+        immediate
+            ? const Duration(milliseconds: 250)
+            : const Duration(seconds: 5);
+
+    _submitSpeechTimer = Timer(delay, () async {
+      if (!mounted || !_isListening || _isSubmittingSpeech || _isProcessing) {
+        return;
+      }
+
+      final latestWords = _lastTranscript.trim();
+      if (latestWords.isEmpty) {
+        return;
+      }
+
+      _isSubmittingSpeech = true;
+      await _handleRecognizedSpeech(latestWords);
+    });
   }
 
   void _handleSpeechStatus(String status) {
@@ -289,8 +314,15 @@ class _AiScreenState extends State<AiScreen>
         _isListening &&
         !_isSubmittingSpeech &&
         !_isProcessing &&
-        !_isStartingListening &&
-        _lastTranscript.trim().isEmpty) {
+        !_isStartingListening) {
+      final transcript = _lastTranscript.trim();
+
+      if (transcript.isNotEmpty) {
+        _scheduleSpeechSubmission(transcript, immediate: true);
+        return;
+      }
+
+      _submitSpeechTimer?.cancel();
       _stopPulse();
       setState(() {
         _isListening = false;
@@ -336,8 +368,10 @@ class _AiScreenState extends State<AiScreen>
   }
 
   Future<void> _handleRecognizedSpeech(String text) async {
+    _submitSpeechTimer?.cancel();
     _stopPulse();
     await _speechToText.stop();
+    await _speechToText.cancel();
 
     final inferredSpeechLocaleId = _inferSpeechLocaleId(text);
 
@@ -346,7 +380,7 @@ class _AiScreenState extends State<AiScreen>
       _isListening = false;
       _isProcessing = true;
       _isStartingListening = false;
-      if (_isVietnameseLocale(inferredSpeechLocaleId)) {
+      if (inferredSpeechLocaleId != null) {
         _speechLocaleId = inferredSpeechLocaleId;
       }
       _statusText = 'AI đang suy nghĩ...';
@@ -378,19 +412,39 @@ class _AiScreenState extends State<AiScreen>
         emotion: result.emotion,
       );
 
+      final shouldListenAgain = result.shouldListenAgain;
+      final pendingUserMessage = _pendingUserMessage;
+      final pendingAssistantReply = _pendingAssistantReply;
+      final shouldSaveTurn =
+          _hasUnsavedTurn &&
+          (pendingUserMessage?.trim().isNotEmpty ?? false) &&
+          (pendingAssistantReply?.trim().isNotEmpty ?? false);
+
+      if (shouldSaveTurn) {
+        await _voiceChatService.saveConversationTurn(
+          conversationId: _conversationId,
+          persona: _selectedPersonality,
+          userMessage: pendingUserMessage!,
+          assistantReply: pendingAssistantReply!,
+        );
+      }
+
       if (!mounted) return;
       setState(() {
         _isProcessing = false;
         _isSubmittingSpeech = false;
         _isStartingListening = false;
+        _pendingUserMessage = null;
+        _pendingAssistantReply = null;
+        _hasUnsavedTurn = false;
         _statusText =
-            result.shouldListenAgain
+            shouldListenAgain
                 ? 'Đang chuẩn bị lắng nghe lại...'
                 : 'Nhấn Bắt đầu để tiếp tục trò chuyện';
       });
 
-      if (result.shouldListenAgain) {
-        await Future<void>.delayed(const Duration(milliseconds: 350));
+      if (shouldListenAgain) {
+        await Future<void>.delayed(const Duration(milliseconds: 1200));
         await _startListening();
       }
     } catch (error) {
@@ -409,6 +463,7 @@ class _AiScreenState extends State<AiScreen>
   }
 
   Future<void> _stopInteraction() async {
+    _submitSpeechTimer?.cancel();
     await _speechToText.stop();
     await _speechToText.cancel();
     await _voiceChatService.stopSpeaking();
@@ -760,7 +815,7 @@ class _AiScreenState extends State<AiScreen>
                           child: Text(
                             'AI Trò Chuyện',
                             style: GoogleFonts.plusJakartaSans(
-                              fontSize: 16,
+                              fontSize: 20,
                               fontWeight: FontWeight.w800,
                               color: ColorSetting.colorprimary,
                             ),

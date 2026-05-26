@@ -92,61 +92,76 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
       backgroundColor: FlashcardScreenStyles.pageBackground,
       appBar: AppBar(
         elevation: 0,
+        toolbarHeight: 72,
         backgroundColor: FlashcardScreenStyles.pageBackground,
         scrolledUnderElevation: 0,
-        titleSpacing: 20,
-        title: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        automaticallyImplyLeading: false,
+        titleSpacing: 16,
+        title: Row(
           children: [
-            Text(
-              widget.flashcardList.title,
-              style: GoogleFonts.plusJakartaSans(
-                fontWeight: FontWeight.w800,
-                fontSize: 18,
-                color: ColorSetting.colorprimary,
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: IconButton(
+                splashColor: Colors.transparent,
+                highlightColor: Colors.transparent,
+                padding: EdgeInsets.zero,
+                onPressed: () => Navigator.pop(context),
+                icon: Icon(
+                  Icons.arrow_back_ios_new_rounded,
+                  size: 18,
+                  color: ColorSetting.colorprimary,
+                ),
               ),
             ),
-            const SizedBox(height: 2),
-            Text(
-              '${widget.flashcardList.flashcards.length} thuật ngữ',
-              style: GoogleFonts.lexend(
-                fontSize: 12,
-                color: FlashcardScreenStyles.mutedText,
+            const SizedBox(width: 12),
+            Expanded(
+              child: Text(
+                widget.flashcardList.title,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w800,
+                  fontSize: 20,
+                  color: ColorSetting.colorprimary,
+                ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            Material(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(14),
+              child: InkWell(
+                borderRadius: BorderRadius.circular(14),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder:
+                          (context) => EditFlashCard(
+                            flashcardList: widget.flashcardList,
+                          ),
+                    ),
+                  );
+                },
+                child: SizedBox(
+                  width: 42,
+                  height: 42,
+                  child: Icon(
+                    FontAwesomeIcons.penToSquare,
+                    size: 18,
+                    color: ColorSetting.colorprimary,
+                  ),
+                ),
               ),
             ),
           ],
         ),
-        titleTextStyle: GoogleFonts.plusJakartaSans(
-          fontWeight: FontWeight.w700,
-          fontSize: 20,
-          color: ColorSetting.colorprimary,
-        ),
-        actions: [
-          // Nút Edit
-          Container(
-            padding: EdgeInsets.fromLTRB(0, 0, 30, 0),
-            width: 30.0,
-            child: IconButton(
-              splashColor: Colors.transparent,
-              highlightColor: Colors.transparent,
-              icon: Icon(
-                FontAwesomeIcons.penToSquare,
-                color: ColorSetting.colorprimary,
-                size: 20,
-              ),
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder:
-                        (context) =>
-                            EditFlashCard(flashcardList: widget.flashcardList),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
       ),
       body: SingleChildScrollView(
         child: Column(

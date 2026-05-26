@@ -1,20 +1,7 @@
+import 'package:apphoctienganh/features/auth/data/models/user_profile_model.dart';
+import 'package:apphoctienganh/features/auth/domain/entities/user_profile.dart';
+import 'package:apphoctienganh/features/auth/domain/repositories/auth_repository.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-
-typedef UserProfile = Map<String, dynamic>;
-
-abstract interface class AuthRepository {
-  Future<UserProfile> signIn(String email, String password);
-
-  Future<void> registerAccount(String email, String password);
-
-  Future<void> signOut();
-
-  Future<void> sendResetPasswordEmail(String email);
-
-  Future<bool> signInWithGoogle();
-
-  UserProfile? getCurrentUserProfile();
-}
 
 final class LocalAuthRepository implements AuthRepository {
   UserProfile? _user;
@@ -32,7 +19,7 @@ final class LocalAuthRepository implements AuthRepository {
       throw const AuthException('Đăng nhập thất bại, vui lòng thử lại.');
     }
 
-    _user = _mapSupabaseUser(user);
+    _user = UserProfileModel.fromSupabaseUser(user).toEntity();
 
     return _user!;
   }
@@ -66,33 +53,20 @@ final class LocalAuthRepository implements AuthRepository {
   }
 
   @override
-Future<bool> signInWithGoogle() async {
-  return await supabase.auth.signInWithOAuth(
-    OAuthProvider.google,
-    redirectTo: 'io.supabase.flutter://login-callback/',
-  );
-}
+  Future<bool> signInWithGoogle() async {
+    return await supabase.auth.signInWithOAuth(
+      OAuthProvider.google,
+      redirectTo: 'io.supabase.flutter://login-callback/',
+    );
+  }
 
   @override
   UserProfile? getCurrentUserProfile() {
     final user = supabase.auth.currentUser;
     if (user != null) {
-      _user = _mapSupabaseUser(user);
+      _user = UserProfileModel.fromSupabaseUser(user).toEntity();
     }
 
     return _user;
-  }
-
-  UserProfile _mapSupabaseUser(User user) {
-    final metadata = user.userMetadata ?? const <String, dynamic>{};
-
-    return {
-      'uid': user.id,
-      'email': user.email,
-      'displayName': metadata['full_name'] ?? metadata['name'] ?? user.email,
-      'photoURL': metadata['avatar_url'] ?? metadata['picture'],
-      'phoneNumber': user.phone,
-      'isEmailVerified': user.emailConfirmedAt != null,
-    };
   }
 }

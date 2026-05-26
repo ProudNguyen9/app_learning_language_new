@@ -17,10 +17,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final userProfile = context.watch<AuthProvider>().getCurrentUserProfile();
-    final imageUrl = userProfile?['photoURL'] ?? '';
-    final email = userProfile?['email'] ?? 'Email chưa có';
-    final rawDisplayName =
-        (userProfile?['displayName'] ?? '').toString().trim();
+    final imageUrl = userProfile?.photoUrl ?? '';
+    final email = userProfile?.email ?? 'Email chưa có';
+    final rawDisplayName = (userProfile?.displayName ?? '').trim();
     final displayName =
         rawDisplayName.isNotEmpty ? rawDisplayName : _buildNameFromEmail(email);
     final firstChar =

@@ -64,7 +64,7 @@ class _CenterHomeState extends State<CenterHome> {
           ),
           BottomNavigationBarItem(
             icon: FaIcon(FontAwesomeIcons.solidRectangleList, size: 22),
-            label: 'Flashcard',
+            label: 'Thẻ nhớ',
           ),
           BottomNavigationBarItem(
             icon: FaIcon(FontAwesomeIcons.wandMagicSparkles, size: 22),
@@ -72,7 +72,7 @@ class _CenterHomeState extends State<CenterHome> {
           ),
           BottomNavigationBarItem(
             icon: FaIcon(FontAwesomeIcons.solidFolderOpen, size: 22),
-            label: 'File',
+            label: 'Thư viện',
           ),
         ],
         selectedItemColor: ColorSetting.colorprimary,

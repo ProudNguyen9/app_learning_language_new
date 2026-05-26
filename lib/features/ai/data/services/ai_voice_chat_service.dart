@@ -1,16 +1,12 @@
 import 'dart:async';
 import 'dart:convert';
-import 'dart:io';
 
 import 'package:apphoctienganh/features/ai/data/datasources/ai_chat_local_data_source.dart';
 import 'package:apphoctienganh/features/ai/domain/ai_chat_message.dart';
 import 'package:apphoctienganh/features/ai/domain/ai_persona.dart';
 import 'package:apphoctienganh/features/ai/domain/ai_prompt_builder.dart';
-import 'package:audioplayers/audioplayers.dart';
-import 'package:edge_tts/edge_tts.dart';
+import 'package:flutter_tts/flutter_tts.dart';
 import 'package:http/http.dart' as http;
-import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 import 'package:uuid/uuid.dart';
 
 class AiVoiceChatResult {
@@ -40,16 +36,18 @@ class AiVoiceChatService {
   AiVoiceChatService({
     AiChatLocalDataSource? chatLocalDataSource,
     http.Client? httpClient,
-    AudioPlayer? audioPlayer,
+    FlutterTts? flutterTts,
     Uuid? uuid,
   }) : _chatLocalDataSource = chatLocalDataSource ?? AiChatLocalDataSource(),
        _httpClient = httpClient ?? http.Client(),
-       _audioPlayer = audioPlayer ?? AudioPlayer(),
-       _uuid = uuid ?? const Uuid();
+       _flutterTts = flutterTts ?? FlutterTts(),
+       _uuid = uuid ?? const Uuid() {
+    _flutterTts.awaitSpeakCompletion(true);
+  }
 
   final AiChatLocalDataSource _chatLocalDataSource;
   final http.Client _httpClient;
-  final AudioPlayer _audioPlayer;
+  final FlutterTts _flutterTts;
   final Uuid _uuid;
 
   static const String _chatPath = '/chat/completions';
@@ -81,17 +79,24 @@ class AiVoiceChatService {
     );
 
     final uri = Uri.parse('${baseUrl.replaceAll(RegExp(r'/$'), '')}$_chatPath');
-    final response = await _httpClient
-        .post(
-          uri,
-          headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            if (apiKey.trim().isNotEmpty) 'Authorization': 'Bearer $apiKey',
-          },
-          body: jsonEncode(requestBody),
-        )
-        .timeout(const Duration(seconds: 25));
+    http.Response response;
+    try {
+      response = await _httpClient
+          .post(
+            uri,
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json',
+              if (apiKey.trim().isNotEmpty) 'Authorization': 'Bearer $apiKey',
+            },
+            body: jsonEncode(requestBody),
+          )
+          .timeout(const Duration(seconds: 60));
+    } on TimeoutException {
+      throw Exception(
+        'AI phản hồi quá lâu nên đã bị timeout. Hãy thử lại hoặc kiểm tra server AI.',
+      );
+    }
 
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw Exception(
@@ -167,37 +172,14 @@ class AiVoiceChatService {
       return;
     }
 
-    final settings = _voiceSettingsFor(language: language, emotion: emotion);
+    final normalizedLanguage = language.trim().isEmpty ? 'en-US' : language;
 
-    final directory = await getTemporaryDirectory();
-    final filePath = path.join(
-      directory.path,
-      'ai_voice_${DateTime.now().millisecondsSinceEpoch}.mp3',
-    );
-    final audioFile = File(filePath);
-
-    final communicate = Communicate(
-      text: trimmedText,
-      voice: settings.voice,
-      rate: settings.rate,
-      pitch: settings.pitch,
-      volume: settings.volume,
-    );
-
-    await communicate.save(filePath);
-
-    if (!await audioFile.exists()) {
-      throw Exception('Không tạo được file âm thanh TTS.');
-    }
-
-    final audioBytes = await audioFile.readAsBytes();
-    if (audioBytes.isEmpty) {
-      throw Exception('File âm thanh TTS rỗng.');
-    }
-
-    await _audioPlayer.stop();
-    await _audioPlayer.setSourceBytes(audioBytes);
-    await _audioPlayer.resume();
+    await _flutterTts.stop();
+    await _flutterTts.setLanguage(_ttsLanguageFor(normalizedLanguage));
+    await _flutterTts.setSpeechRate(_speechRateFor(normalizedLanguage));
+    await _flutterTts.setPitch(1.0);
+    await _flutterTts.setVolume(1.0);
+    await _flutterTts.speak(trimmedText);
   }
 
   Future<void> speakAndWait({
@@ -210,80 +192,33 @@ class AiVoiceChatService {
     } catch (_) {
       return;
     }
-
-    try {
-      await _audioPlayer.onPlayerComplete.first.timeout(
-        const Duration(seconds: 45),
-      );
-    } on TimeoutException {
-      return;
-    }
   }
 
   Future<void> stopSpeaking() async {
-    await _audioPlayer.stop();
+    await _flutterTts.stop();
   }
 
-  _VoiceSettings _voiceSettingsFor({
-    required String language,
-    required String emotion,
-  }) {
-    final normalizedLanguage = language.trim().isEmpty ? 'en-US' : language;
-    final voice = _voiceForLanguage(normalizedLanguage);
-
-    return switch (emotion) {
-      'happy' => _VoiceSettings(
-        voice: voice,
-        rate: '+8%',
-        pitch: '+8Hz',
-        volume: '+0%',
-      ),
-      'encourage' => _VoiceSettings(
-        voice: voice,
-        rate: '+5%',
-        pitch: '+6Hz',
-        volume: '+0%',
-      ),
-      'strict' => _VoiceSettings(
-        voice: voice,
-        rate: '-6%',
-        pitch: '-6Hz',
-        volume: '+0%',
-      ),
-      'sad' => _VoiceSettings(
-        voice: voice,
-        rate: '-10%',
-        pitch: '-10Hz',
-        volume: '-5%',
-      ),
-      'excited' => _VoiceSettings(
-        voice: voice,
-        rate: '+12%',
-        pitch: '+12Hz',
-        volume: '+5%',
-      ),
-      _ => _VoiceSettings(
-        voice: voice,
-        rate: '+0%',
-        pitch: '+0Hz',
-        volume: '+0%',
-      ),
-    };
-  }
-
-  String _voiceForLanguage(String language) {
+  String _ttsLanguageFor(String language) {
     final normalized = language.replaceAll('_', '-').toLowerCase();
 
-    if (normalized.startsWith('vi')) return 'vi-VN-HoaiMyNeural';
-    if (normalized.startsWith('en-gb')) return 'en-GB-SoniaNeural';
-    if (normalized.startsWith('en')) return 'en-US-JennyNeural';
-    if (normalized.startsWith('ja')) return 'ja-JP-NanamiNeural';
-    if (normalized.startsWith('ko')) return 'ko-KR-SunHiNeural';
-    if (normalized.startsWith('zh')) return 'zh-CN-XiaoxiaoNeural';
-    if (normalized.startsWith('fr')) return 'fr-FR-DeniseNeural';
-    if (normalized.startsWith('de')) return 'de-DE-KatjaNeural';
-    if (normalized.startsWith('es')) return 'es-ES-ElviraNeural';
-    return 'en-US-JennyNeural';
+    if (normalized.startsWith('vi')) return 'vi-VN';
+    if (normalized.startsWith('en-gb')) return 'en-GB';
+    if (normalized.startsWith('en')) return 'en-US';
+    if (normalized.startsWith('ja')) return 'ja-JP';
+    if (normalized.startsWith('ko')) return 'ko-KR';
+    if (normalized.startsWith('zh')) return 'zh-CN';
+    if (normalized.startsWith('fr')) return 'fr-FR';
+    if (normalized.startsWith('de')) return 'de-DE';
+    if (normalized.startsWith('es')) return 'es-ES';
+    return 'en-US';
+  }
+
+  double _speechRateFor(String language) {
+    final normalized = language.replaceAll('_', '-').toLowerCase();
+
+    if (normalized.startsWith('vi')) return 0.45;
+    if (normalized.startsWith('en')) return 0.42;
+    return 0.45;
   }
 
   String _sanitizeReplyText(String text) {
@@ -300,21 +235,7 @@ class AiVoiceChatService {
   }
 
   Future<void> dispose() async {
-    await _audioPlayer.dispose();
+    await _flutterTts.stop();
     _httpClient.close();
   }
-}
-
-class _VoiceSettings {
-  final String voice;
-  final String rate;
-  final String pitch;
-  final String volume;
-
-  const _VoiceSettings({
-    required this.voice,
-    required this.rate,
-    required this.pitch,
-    required this.volume,
-  });
 }

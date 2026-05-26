@@ -44,9 +44,9 @@ class _FileLibraryScreenState extends State<FileLibraryScreen> {
           color: const Color(0xFF726D8E),
         ),
       ),
-      title: 'Xóa bộ flashcard này?',
+      title: 'Xóa bộ thẻ nhớ này?',
       desc:
-          'Bộ "${lesson.title}" và các thuật ngữ liên quan sẽ bị xóa vĩnh viễn khỏi hệ thống.',
+          'Bộ "${lesson.title}" và các thẻ liên quan sẽ bị xóa vĩnh viễn khỏi hệ thống.',
       buttons: [
         DialogButton(
           onPressed: () => Navigator.pop(context),
@@ -168,7 +168,7 @@ class _FileLibraryScreenState extends State<FileLibraryScreen> {
               ),
               const Gap(6),
               Text(
-                'Quản lý và ôn tập các bộ thẻ ghi nhớ của bạn.',
+                'Quản lý và ôn tập các bộ thẻ nhớ của bạn.',
                 style: GoogleFonts.lexend(
                   fontSize: 13,
                   fontWeight: FontWeight.w400,
@@ -463,7 +463,7 @@ class _FileLibraryScreenState extends State<FileLibraryScreen> {
                             ),
                             const Gap(8),
                             Text(
-                              'Dựa trên dữ liệu học tập của bạn, chúng tôi đề xuất nên ôn lại các bộ flashcard gần đây.',
+                              'Dựa trên dữ liệu học tập của bạn, chúng tôi đề xuất nên ôn lại các bộ thẻ nhớ gần đây.',
                               style: GoogleFonts.lexend(
                                 fontSize: 12,
                                 height: 1.5,
