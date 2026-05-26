@@ -1,12 +1,12 @@
-import 'package:apphoctienganh/features/auth/presentation/screens/profile_screen.dart';
-import 'package:apphoctienganh/features/flashcard/presentation/screens/create_flashcard_screen.dart';
-import 'package:apphoctienganh/features/home/presentation/screens/home_page.dart';
-import 'package:apphoctienganh/features/flashcard/presentation/providers/flashcard_provider.dart';
-import 'package:apphoctienganh/features/flashcard/presentation/widgets/flashcard_item_widget.dart';
-import 'package:apphoctienganh/features/flashcard/domain/entities/list_flashcard.dart';
+import 'package:apphoctienganh/features/flashcard/flashcard.dart';
+import 'package:apphoctienganh/features/home/presentation/providers/home_provider.dart';
+import 'package:dotted_border/dotted_border.dart';
 import 'package:flutter/material.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
+import 'package:gap/gap.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+
+import '../../../../core/theme/app_colors.dart';
 
 class EditFlashCard extends StatefulWidget {
   final FlashcardList flashcardList;
@@ -19,231 +19,518 @@ class EditFlashCard extends StatefulWidget {
 class _EditFlashCardState extends State<EditFlashCard> {
   final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
+
   @override
   void initState() {
     super.initState();
     context.read<FlashcardProvider>().loadData(widget.flashcardList.flashcards);
-    // đổ dữ liệu vô cho cái thẻ
     _titleController.text = widget.flashcardList.title;
     _descriptionController.text = widget.flashcardList.description;
   }
 
   @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.white,
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        title: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text("Edit Flashcard", style: TextStyle(fontSize: 20)),
-            ElevatedButton(
-              onPressed: () async {
-                // Lấy giá trị từ các trường tiêu đề và mô tả
-                String title = _titleController.text;
-                String description = _descriptionController.text;
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    super.dispose();
+  }
 
-                // Gọi hàm lưu flashcard
-                String result = await context
-                    .read<FlashcardProvider>()
-                    .saveForEditFlashcardListAsync(
-                      id: widget.flashcardList.id,
-                      title: title,
-                      description: description,
-                    );
-
-                // Hiển thị kết quả
-                ScaffoldMessenger.of(
-                  // ignore: use_build_context_synchronously
-                  context,
-                ).showSnackBar(SnackBar(content: Text(result)));
-                if (result == 'Cập nhật flashcard thành công!') {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(builder: (context) => HomePage()),
-                  );
-                }
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Color.fromRGBO(83, 209, 197, 1),
-                foregroundColor: Colors.white,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
+  void _showEditFlashcardMessage({
+    required String message,
+    required bool isSuccess,
+  }) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: Colors.transparent,
+          elevation: 0,
+          content: Container(
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color:
+                    isSuccess
+                        ? const Color(0xFFD8F5E2)
+                        : const Color(0xFFFFD6D6),
+              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 18,
+                  offset: const Offset(0, 8),
                 ),
-                side: BorderSide(color: Colors.cyan, width: 2),
-                padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    'Save',
-                    style: TextStyle(fontSize: 16, color: Colors.black),
-                  ),
-                  SizedBox(width: 5),
-                  FaIcon(
-                    FontAwesomeIcons.penToSquare,
-                    color: Colors.black,
-                    size: 18,
-                  ),
-                ],
-              ),
+              ],
             ),
-          ],
+            child: Row(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color:
+                        isSuccess
+                            ? const Color(0xFFE9FAF0)
+                            : const Color(0xFFFFEEEE),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(
+                    isSuccess
+                        ? Icons.check_rounded
+                        : Icons.error_outline_rounded,
+                    color:
+                        isSuccess
+                            ? const Color(0xFF1F9D55)
+                            : const Color(0xFFE53935),
+                    size: 20,
+                  ),
+                ),
+                const Gap(10),
+                Expanded(
+                  child: Text(
+                    message,
+                    style: GoogleFonts.lexend(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: const Color(0xFF2F2A5A),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
         ),
-      ),
+      );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final myProvider = context.watch<FlashcardProvider>();
+
+    return Scaffold(
+      backgroundColor: ColorSetting.background,
       body: Padding(
-        padding: EdgeInsets.all(15),
+        padding: const EdgeInsets.all(16),
         child: SingleChildScrollView(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              SizedBox(height: 5),
-              Text(
-                'Tiêu đề',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              SizedBox(height: 5),
-              TextFormField(
-                controller: _titleController,
-                maxLines: null,
-                minLines: 1,
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.grey[100],
-                  hintText: 'Viết tiêu đề',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              SizedBox(height: 15),
-              Text(
-                'Sự miêu tả',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-              ),
-              SizedBox(height: 5),
-              TextFormField(
-                maxLines: null,
-                minLines: 1,
-                controller: _descriptionController,
-                decoration: InputDecoration(
-                  filled: true,
-                  fillColor: Colors.grey[100],
-                  hintText: 'Viết miêu tả',
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(20),
-                    borderSide: BorderSide.none,
-                  ),
-                ),
-              ),
-              SizedBox(height: 15),
+              const Gap(4),
               Row(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  ElevatedButton(
-                    onPressed: () {
-                      showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        backgroundColor: Colors.white,
-
-                        builder: (context) {
-                          return ClipRRect(
-                            borderRadius: BorderRadius.vertical(
-                              top: Radius.circular(28),
-                            ),
-                            child: FractionallySizedBox(heightFactor: 0.9),
-                          );
-                        },
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
+                  Material(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(14),
+                      onTap: () => Navigator.pop(context),
+                      child: SizedBox(
+                        width: 42,
+                        height: 42,
+                        child: Icon(
+                          Icons.arrow_back_ios_new_rounded,
+                          size: 18,
+                          color: ColorSetting.colorprimary,
+                        ),
                       ),
                     ),
-                    child: Row(
-                      children: [
-                        Icon(Icons.lightbulb_outline),
-                        SizedBox(width: 10),
-                        Text(
-                          "Tạo Flashcard bằng AI",
-                          style: TextStyle(fontSize: 14),
+                  ),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      'Sửa thẻ nhớ',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.plusJakartaSans(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w800,
+                        color: ColorSetting.colorprimary,
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+                  Material(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(14),
+                      onTap: () async {
+                        final editedFlashcards = List<Flashcard>.from(
+                          context.read<FlashcardProvider>().flashcardList,
+                        );
+                        final editedFlashcardList = FlashcardList(
+                          id: widget.flashcardList.id,
+                          title: _titleController.text.trim(),
+                          description: _descriptionController.text.trim(),
+                          flashcards: editedFlashcards,
+                          userId: widget.flashcardList.userId,
+                        );
+
+                        final result = await context
+                            .read<FlashcardProvider>()
+                            .saveForEditFlashcardListAsync(
+                              id: widget.flashcardList.id,
+                              title: _titleController.text.trim(),
+                              description: _descriptionController.text.trim(),
+                            );
+
+                        if (!mounted) return;
+
+                        final isSuccess = result.contains('thành công');
+
+                        if (isSuccess) {
+                          await context
+                              .read<HomeProvider>()
+                              .loadDataforsetstateinhomepage();
+                        }
+
+                        if (!mounted) return;
+
+                        _showEditFlashcardMessage(
+                          message: result,
+                          isSuccess: isSuccess,
+                        );
+
+                        if (isSuccess) {
+                          Navigator.pushReplacement(
+                            context,
+                            MaterialPageRoute(
+                              builder:
+                                  (context) => FlashcardScreen(
+                                    flashcardList: editedFlashcardList,
+                                    flashcards: editedFlashcards,
+                                  ),
+                            ),
+                          );
+                        }
+                      },
+                      child: SizedBox(
+                        width: 42,
+                        height: 42,
+                        child: Icon(
+                          Icons.save_rounded,
+                          size: 20,
+                          color: ColorSetting.colorprimary,
                         ),
-                      ],
+                      ),
                     ),
                   ),
                 ],
               ),
-              SizedBox(height: 15),
-              Text(
-                'Danh sách Flashcard',
-                style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+              const Gap(14),
+              Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFECEBFF),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.title_rounded,
+                      size: 16,
+                      color: Color(0xFF5B5FEF),
+                    ),
+                  ),
+                  const Gap(10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Tiêu đề',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                          color: const Color(0xFF2D325A),
+                        ),
+                      ),
+                      Text(
+                        'Đặt tên ngắn gọn để dễ nhận ra bộ thẻ.',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 11,
+                          color: const Color(0xFF8A90AE),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
               ),
-              SizedBox(height: 10),
-              Consumer<FlashcardProvider>(
-                builder: (context, myProvider, child) {
-                  return ListView.builder(
-                    shrinkWrap: true,
-                    physics: NeverScrollableScrollPhysics(),
-                    itemCount: myProvider.flashcardList.length,
-                    itemBuilder: (context, index) {
-                      final flashcard = myProvider.flashcardList[index];
-                      return FlashcardItem_Widget(
-                        key: ValueKey(flashcard.id),
-                        flashcard: flashcard,
-                        index: index,
-                      );
-                    },
+              const Gap(10),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: const Color(0xFFE7E2F6)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF20254D).withValues(alpha: 0.05),
+                      blurRadius: 18,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: TextFormField(
+                  controller: _titleController,
+                  maxLines: null,
+                  minLines: 1,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF2B315A),
+                  ),
+                  decoration: InputDecoration(
+                    prefixIcon: const Padding(
+                      padding: EdgeInsets.only(left: 16, right: 10),
+                      child: Icon(
+                        Icons.auto_stories_rounded,
+                        size: 20,
+                        color: Color(0xFF8A76F1),
+                      ),
+                    ),
+                    prefixIconConstraints: const BoxConstraints(
+                      minWidth: 46,
+                      minHeight: 20,
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    hintText: 'Viết tiêu đề cho bộ thẻ nhớ của bạn',
+                    hintStyle: GoogleFonts.plusJakartaSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFFA0A5BF),
+                    ),
+                    contentPadding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 18,
+                    ),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: const BorderSide(color: Color(0xFFE7E2F6)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: const BorderSide(
+                        color: Color(0xFF8A76F1),
+                        width: 1.4,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const Gap(18),
+              Row(
+                children: [
+                  Container(
+                    width: 32,
+                    height: 32,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFDEEF3),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Icon(
+                      Icons.notes_rounded,
+                      size: 16,
+                      color: Color(0xFFE16A8A),
+                    ),
+                  ),
+                  const Gap(10),
+                  Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Mô tả',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 15,
+                          color: const Color(0xFF2D325A),
+                        ),
+                      ),
+                      Text(
+                        'Ghi chú ngắn về nội dung hoặc mục tiêu ôn tập.',
+                        style: GoogleFonts.plusJakartaSans(
+                          fontWeight: FontWeight.w500,
+                          fontSize: 11,
+                          color: const Color(0xFF8A90AE),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+              const Gap(10),
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  border: Border.all(color: const Color(0xFFE7E2F6)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF20254D).withValues(alpha: 0.05),
+                      blurRadius: 18,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: TextFormField(
+                  maxLines: null,
+                  minLines: 4,
+                  controller: _descriptionController,
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: const Color(0xFF2B315A),
+                  ),
+                  decoration: InputDecoration(
+                    alignLabelWithHint: true,
+                    prefixIcon: const Padding(
+                      padding: EdgeInsets.only(left: 16, right: 10, bottom: 72),
+                      child: Icon(
+                        Icons.edit_note_rounded,
+                        size: 20,
+                        color: Color(0xFFE16A8A),
+                      ),
+                    ),
+                    prefixIconConstraints: const BoxConstraints(
+                      minWidth: 46,
+                      minHeight: 20,
+                    ),
+                    filled: true,
+                    fillColor: Colors.white,
+                    hintText: 'Viết mô tả cho bộ thẻ nhớ của bạn',
+                    hintStyle: GoogleFonts.plusJakartaSans(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                      color: const Color(0xFFA0A5BF),
+                    ),
+                    contentPadding: const EdgeInsets.fromLTRB(20, 18, 20, 18),
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: BorderSide.none,
+                    ),
+                    enabledBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: const BorderSide(color: Color(0xFFE7E2F6)),
+                    ),
+                    focusedBorder: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(24),
+                      borderSide: const BorderSide(
+                        color: Color(0xFFE16A8A),
+                        width: 1.4,
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+              const Gap(10),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Thẻ nhớ',
+                    style: GoogleFonts.lexend(
+                      fontWeight: FontWeight.w700,
+                      fontSize: 18,
+                      color: const Color(0xFF2F2A5A),
+                    ),
+                  ),
+                  const Icon(
+                    Icons.swap_vert_rounded,
+                    color: Color(0xFF5A5781),
+                    size: 22,
+                  ),
+                ],
+              ),
+              const Gap(5),
+              ListView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: myProvider.flashcardList.length,
+                itemBuilder: (context, index) {
+                  final flashcard = myProvider.flashcardList[index];
+                  return FlashcardItem_Widget(
+                    key: ValueKey(flashcard.id),
+                    flashcard: flashcard,
+                    index: index,
                   );
                 },
+              ),
+              const SizedBox(height: 16),
+              GestureDetector(
+                onTap: () {
+                  context.read<FlashcardProvider>().addFlashcard();
+                },
+                child: DottedBorder(
+                  color: const Color(0xFFB7A7F2),
+                  strokeWidth: 1.8,
+                  dashPattern: const [7, 5],
+                  borderType: BorderType.RRect,
+                  radius: const Radius.circular(24),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 20,
+                      vertical: 26,
+                    ),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFFFFFFF),
+                      borderRadius: BorderRadius.circular(24),
+                    ),
+                    child: Column(
+                      children: [
+                        Container(
+                          width: 64,
+                          height: 64,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF2EEFF),
+                            shape: BoxShape.circle,
+                            border: Border.all(
+                              color: const Color(0xFFD9D0FF),
+                              width: 1.2,
+                            ),
+                          ),
+                          child: const Icon(
+                            Icons.add,
+                            size: 30,
+                            color: Color(0xFF6A5ACD),
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          'Thêm thẻ mới',
+                          style: GoogleFonts.lexend(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                            color: const Color(0xFF3F356B),
+                          ),
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Chạm để thêm một thẻ nhớ mới vào bộ thẻ của bạn',
+                          textAlign: TextAlign.center,
+                          style: GoogleFonts.lexend(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                            height: 1.5,
+                            color: const Color(0xFF8B85B3),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ),
             ],
           ),
         ),
-      ),
-      floatingActionButton: SizedBox(
-        width: 45,
-        height: 45,
-        child: FloatingActionButton(
-          onPressed: () {
-            context.read<FlashcardProvider>().addFlashcard();
-          },
-          shape: CircleBorder(),
-          backgroundColor: Color.fromRGBO(83, 209, 197, 1),
-          child: Icon(Icons.add, color: Colors.white, size: 30),
-        ),
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        onTap: (index) {
-          Widget nextPage;
-
-          if (index == 0) {
-            nextPage = HomePage();
-          } else if (index == 1) {
-            nextPage = CreateFlashcard();
-          } else {
-            nextPage = ProfileScreen();
-          }
-
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(builder: (context) => nextPage),
-          );
-        },
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: "Home"),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.menu_book),
-            label: "Flashcard",
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: "Profile"),
-        ],
-        selectedItemColor: Colors.teal,
-        unselectedItemColor: Colors.grey,
       ),
     );
   }

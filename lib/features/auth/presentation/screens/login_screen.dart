@@ -1,6 +1,5 @@
 import 'package:apphoctienganh/features/auth/presentation/providers/auth_provider.dart';
 import 'package:apphoctienganh/core/theme/app_colors.dart';
-import 'package:apphoctienganh/features/home/presentation/screens/home_page.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -240,24 +239,15 @@ class _LoginScreenState extends State<LoginScreen> {
                           );
 
                           try {
-                            final success =
-                                await authProvider.signInWithGoogle();
-                            if (success) {
-                              Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                  builder: (context) => const HomePage(),
-                                ),
-                              );
-                            } else {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Đăng nhập thất bại!'),
-                                ),
-                              );
-                            }
+                            await authProvider.signInWithGoogle();
                           } catch (e) {
                             print('Lỗi đăng nhập Google: $e');
+
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Đăng nhập Google thất bại!'),
+                              ),
+                            );
                           }
                         },
 

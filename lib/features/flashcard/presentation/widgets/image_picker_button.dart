@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:provider/provider.dart';
 import 'package:apphoctienganh/features/flashcard/presentation/providers/flashcard_provider.dart';
 
@@ -26,7 +27,11 @@ class ImagePickerButton extends StatelessWidget {
 
         return imagePath == null
             ? IconButton(
-              icon: const Icon(Icons.add_a_photo, size: 30),
+              icon: const FaIcon(
+                FontAwesomeIcons.fileImage,
+                size: 26,
+                color: Color(0xFF233E7B),
+              ),
               onPressed: () {
                 // Gọi hàm pickImage với tham số `isQuestion` được truyền vào
                 provider.pickImage(

@@ -35,8 +35,8 @@ class _Start_ScreenState extends State<Start_Screen> {
             Text(
               ' Anh Lish',
               style: GoogleFonts.plusJakartaSans(
-                fontSize: 24,
-                fontWeight: FontWeight.w800,
+                fontSize: 20,
+                fontWeight: FontWeight.w700,
                 color: ColorSetting.colorprimary,
               ),
             ),
@@ -62,7 +62,7 @@ class _Start_ScreenState extends State<Start_Screen> {
                   ),
                   SizedBox(height: 10),
                   Text(
-                    'Học mọi lúc, mọi nơi với các bài học từ vựng, ngữ pháp và kỹ năng giao tiếp .Học để sau này không đói !',
+                    'Học mọi lúc, mọi nơi với các bài học từ vựng, ngữ pháp và kỹ năng giao tiếp .Học để sau này có tương lai !',
                     style: GoogleFonts.plusJakartaSans(
                       fontSize: 18,
                       fontStyle: FontStyle.italic,
