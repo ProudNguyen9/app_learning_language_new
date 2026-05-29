@@ -1,7 +1,12 @@
 import 'package:apphoctienganh/core/theme/app_colors.dart';
 import 'package:apphoctienganh/features/auth/presentation/screens/profile_screen.dart';
+import 'package:apphoctienganh/features/flashcard/domain/entities/list_flashcard.dart';
 import 'package:apphoctienganh/features/home/presentation/providers/home_provider.dart';
+import 'package:apphoctienganh/features/home/presentation/providers/streak_provider.dart';
+import 'package:apphoctienganh/features/skill_listening/presentation/screens/choose_type_listening.dart';
+import 'package:apphoctienganh/features/skill_reading/presentation/screens/choose_type_reading.dart';
 import 'package:apphoctienganh/features/skill_speaking/presentation/screens/choose_type_speaking.dart';
+import 'package:apphoctienganh/features/skill_writing/presentation/screens/writing_practice_screen.dart';
 import 'package:apphoctienganh/shared/widgets/widget.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -35,8 +40,8 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    final flashcardLists = context.watch<HomeProvider>().flashcardLists;
-    final recentFlashcardLists = flashcardLists.take(2).toList();
+    context.watch<HomeProvider>();
+    final streakProvider = context.watch<StreakProvider>();
 
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle(
@@ -101,26 +106,43 @@ class _HomePageState extends State<HomePage> {
                           color: ColorSetting.colorprimary,
                         ),
                       ),
-
                     ],
                   ),
                   const Gap(10),
-                  momentumStreakCard(),
-                  const SizedBox(height: 14),
-                  const SectionHeading(text: 'HỌC GẦN ĐÂY'),
-                  const SizedBox(height: 5),
-                  const _TimeFilterTabs(
-                    labels: ['Mới đây', 'Hôm qua', 'Tuần trước'],
+                  momentumStreakCard(streakProvider),
+
+                  const Gap(15),
+                  Row(
+                    children: [
+                      Text(
+                        'Các học phần',
+                        style: GoogleFonts.plusJakartaSans(
+                          color: const Color(0xFF211A3B),
+                          fontSize: 18,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withOpacity(0.65),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Text(
+                          '4 kỹ năng',
+                          style: GoogleFonts.plusJakartaSans(
+                            color: ColorSetting.colorprimary,
+                            fontSize: 11,
+                            fontWeight: FontWeight.w800,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  const Gap(15),
-                  if (recentFlashcardLists.isNotEmpty)
-                    cardVocal()
-                  else
-                    _EmptyRecentFlashcardCard(),
-                  const Gap(15),
-                  cardEndingSounds(),
-                  const Gap(15),
-                  const SectionHeading(text: 'CÁC HỌC PHẦN'),
                   const Gap(15),
                   Row(
                     children: [
@@ -131,7 +153,14 @@ class _HomePageState extends State<HomePage> {
                           icon: Icons.menu_book_outlined,
                           iconcolor: const Color(0xFF177E9B),
                           iconBackgroundColor: const Color(0xFFEAF8FC),
-                          onTap: null,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (context) => const ChooseTypeReading(),
+                              ),
+                            );
+                          },
                         ),
                       ),
                       const SizedBox(width: 8),
@@ -142,7 +171,15 @@ class _HomePageState extends State<HomePage> {
                           icon: Icons.edit_note,
                           iconcolor: const Color(0xFFE66A8D),
                           iconBackgroundColor: const Color(0xFFFFEEF3),
-                          onTap: null,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => const WritingPracticeScreen(),
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ],
@@ -175,11 +212,23 @@ class _HomePageState extends State<HomePage> {
                           icon: Icons.headphones,
                           iconcolor: const Color(0xFF3A5BDB),
                           iconBackgroundColor: const Color(0xFFE9EEFF),
-                          onTap: null,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder:
+                                    (context) => const ChooseTypeListening(),
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ],
                   ),
+                  const Gap(18),
+                  const _HomeLearningBoostSection(),
+                  const Gap(18),
+                  const _MotivationCard(),
 
                   const SizedBox(height: 24),
                 ],
@@ -195,52 +244,59 @@ class _HomePageState extends State<HomePage> {
   }
 
   // card vocal
-  Container cardVocal() {
+  Container cardVocal(FlashcardList lesson) {
+    final totalCards = lesson.flashcards.length;
+    final studiedCards = lesson.studiedCards.clamp(0, totalCards);
+    final percentText = '${(lesson.progressPercent * 100).round()}%';
+    final recentLabel = _buildRecentLabel(lesson.lastStudiedAt);
+
     return Container(
-      padding: EdgeInsets.all(16),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
       ),
       child: Row(
         children: [
-          // ICON
           Container(
-            padding: EdgeInsets.all(12),
+            padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(
               color: Colors.orange[100],
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Icon(Icons.menu_book, color: Colors.orange),
+            child: const Icon(Icons.style_rounded, color: Colors.orange),
           ),
-
-          SizedBox(width: 16),
-
-          // TEXT
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  "Từ vựng Du lịch",
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  lesson.title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
                 ),
-                SizedBox(height: 4),
-                Text("Đã học 15/20 từ", style: TextStyle(color: Colors.grey)),
+                const SizedBox(height: 4),
+                Text(
+                  'Đã học $studiedCards/$totalCards thẻ • $recentLabel',
+                  style: const TextStyle(color: Colors.grey),
+                ),
               ],
             ),
           ),
-
-          // % BADGE
           Container(
-            padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
             decoration: BoxDecoration(
               color: Colors.orange[100],
               borderRadius: BorderRadius.circular(20),
             ),
             child: Text(
-              "85%",
-              style: TextStyle(
+              percentText,
+              style: const TextStyle(
                 color: Colors.orange,
                 fontWeight: FontWeight.bold,
               ),
@@ -250,28 +306,295 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
+
+  String _buildRecentLabel(DateTime? value) {
+    if (value == null) {
+      return 'Chưa học';
+    }
+
+    final now = DateTime.now();
+    final difference = now.difference(value);
+    if (difference.inMinutes < 1) {
+      return 'Vừa mới học';
+    }
+    if (difference.inHours < 1) {
+      return '${difference.inMinutes} phút trước';
+    }
+    if (difference.inDays < 1) {
+      return '${difference.inHours} giờ trước';
+    }
+    if (difference.inDays == 1) {
+      return 'Hôm qua';
+    }
+    if (difference.inDays < 7) {
+      return '${difference.inDays} ngày trước';
+    }
+    return 'Tuần trước';
+  }
 }
 
-class _EmptyRecentFlashcardCard extends StatelessWidget {
-  const _EmptyRecentFlashcardCard();
+class _HomeLearningBoostSection extends StatelessWidget {
+  const _HomeLearningBoostSection();
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Text(
+              'Gợi ý hôm nay',
+              style: GoogleFonts.plusJakartaSans(
+                color: const Color(0xFF211A3B),
+                fontSize: 18,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+            const Spacer(),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.65),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                '15 phút/ngày',
+                style: GoogleFonts.plusJakartaSans(
+                  color: ColorSetting.colorprimary,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(24),
+            border: Border.all(
+              color: Colors.white.withOpacity(0.8),
+              width: 1.4,
+            ),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x16000000),
+                blurRadius: 18,
+                offset: Offset(0, 8),
+              ),
+            ],
+          ),
+          child: Column(
+            children: [
+              _LearningBoostItem(
+                icon: Icons.auto_stories_rounded,
+                title: 'Đọc 1 đoạn ngắn',
+                subtitle: 'Luyện đọc hiểu 5 phút để tăng vốn từ.',
+                iconColor: const Color(0xFF177E9B),
+                iconBackgroundColor: const Color(0xFFEAF8FC),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ChooseTypeReading(),
+                    ),
+                  );
+                },
+              ),
+              const _SoftDivider(),
+              _LearningBoostItem(
+                icon: Icons.record_voice_over_rounded,
+                title: 'Nói lại 3 câu mẫu',
+                subtitle: 'Ghi âm và nghe lại để sửa phát âm.',
+                iconColor: const Color(0xFF7A52CC),
+                iconBackgroundColor: const Color(0xFFF1EAFE),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => ChooseTypeSpeaking(),
+                    ),
+                  );
+                },
+              ),
+              const _SoftDivider(),
+              _LearningBoostItem(
+                icon: Icons.headphones_rounded,
+                title: 'Nghe một đoạn văn',
+                subtitle: 'Luyện nghe ngắn để bắt keyword và ngữ điệu.',
+                iconColor: const Color(0xFF3A5BDB),
+                iconBackgroundColor: const Color(0xFFE9EEFF),
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const ChooseTypeListening(),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _MotivationCard extends StatelessWidget {
+  const _MotivationCard();
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: const Color(0xFFF0ECF8), width: 1.2),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x12000000),
+            blurRadius: 20,
+            spreadRadius: -6,
+            offset: Offset(0, 12),
+          ),
+        ],
       ),
-      child: const Text(
-        'Bạn chưa có học phần gần đây. Hãy nhấn nút + để tạo flashcard đầu tiên.',
-        style: TextStyle(
-          fontSize: 14,
-          color: Color(0xFF5E5E5E),
-          fontWeight: FontWeight.w500,
+      child: Row(
+        children: [
+          Container(
+            width: 54,
+            height: 54,
+            decoration: BoxDecoration(
+              color: const Color(0xFFFFF3D9),
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: const Icon(
+              Icons.emoji_events_rounded,
+              color: Color(0xFFFFA726),
+              size: 30,
+            ),
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Bạn đang làm rất tốt!',
+                  style: GoogleFonts.plusJakartaSans(
+                    color: const Color(0xFF211A3B),
+                    fontSize: 16,
+                    fontWeight: FontWeight.w900,
+                    letterSpacing: -0.25,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Text(
+                  'Mỗi ngày học một chút, tiếng Anh của bạn sẽ tiến bộ rõ rệt.',
+                  style: GoogleFonts.plusJakartaSans(
+                    color: const Color(0xFF7B7390),
+                    fontSize: 12.5,
+                    height: 1.35,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _LearningBoostItem extends StatelessWidget {
+  const _LearningBoostItem({
+    required this.icon,
+    required this.title,
+    required this.subtitle,
+    required this.iconColor,
+    required this.iconBackgroundColor,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String title;
+  final String subtitle;
+  final Color iconColor;
+  final Color iconBackgroundColor;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 2),
+          child: Row(
+            children: [
+              Container(
+                width: 46,
+                height: 46,
+                decoration: BoxDecoration(
+                  color: iconBackgroundColor,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(icon, color: iconColor, size: 23),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      title,
+                      style: GoogleFonts.plusJakartaSans(
+                        color: const Color(0xFF211A3B),
+                        fontSize: 14.5,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      subtitle,
+                      style: GoogleFonts.plusJakartaSans(
+                        color: const Color(0xFF827A99),
+                        fontSize: 12,
+                        height: 1.35,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(Icons.chevron_right_rounded, color: Color(0xFFC1BAD4)),
+            ],
+          ),
         ),
       ),
+    );
+  }
+}
+
+class _SoftDivider extends StatelessWidget {
+  const _SoftDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Padding(
+      padding: EdgeInsets.symmetric(vertical: 12),
+      child: Divider(height: 1, color: Color(0xFFF0ECFA)),
     );
   }
 }
@@ -319,144 +642,144 @@ Container cardEndingSounds() {
   );
 }
 
-Widget momentumStreakCard() {
-  final streakDays = [
-    ('Mon', true),
-    ('Tue', true),
-    ('Wed', true),
-    ('Thu', true),
-    ('Fri', false),
-    ('Sat', false),
-    ('Sun', true),
-  ];
+Widget momentumStreakCard(StreakProvider streakProvider) {
+  final streakLabels = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+  final streakDays = List.generate(
+    streakLabels.length,
+    (index) => (streakLabels[index], streakProvider.weeklyActivity[index]),
+  );
+  final activeDays = streakProvider.weeklyActivity.where((day) => day).length;
 
   return Container(
     width: double.infinity,
-    padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+    padding: const EdgeInsets.fromLTRB(14, 14, 14, 12),
     decoration: BoxDecoration(
-      gradient: const LinearGradient(
-        begin: Alignment.topLeft,
-        end: Alignment.bottomRight,
-        colors: [Color(0xFF4A63F6), Color(0xFF6F87FF), Color(0xFF93A4FF)],
-      ),
-      borderRadius: BorderRadius.circular(18),
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(22),
+      border: Border.all(color: const Color(0xFFF2ECFF), width: 1),
       boxShadow: const [
         BoxShadow(
-          color: Color(0x243E5CE7),
-          blurRadius: 10,
-          offset: Offset(0, 6),
+          color: Color(0x14000000),
+          blurRadius: 18,
+          offset: Offset(0, 8),
         ),
       ],
     ),
-    child: Stack(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Positioned(
-          top: -2,
-          right: -2,
-          child: Icon(
-            Icons.local_fire_department_rounded,
-            size: 38,
-            color: Colors.white.withOpacity(0.12),
-          ),
-        ),
-        Positioned(
-          bottom: -8,
-          left: -8,
-          child: Container(
-            width: 30,
-            height: 30,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: Colors.white.withOpacity(0.08),
-            ),
-          ),
-        ),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        Row(
           children: [
-            const Text(
-              'MOMENTUM STREAK',
-              style: TextStyle(
-                color: Color(0xFFDCE2FF),
-                fontSize: 9,
-                fontWeight: FontWeight.w700,
-                letterSpacing: 1.2,
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [Color(0xFFFFB25F), Color(0xFFFF6B6B)],
+                ),
+                borderRadius: BorderRadius.circular(14),
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x33FF8A3D),
+                    blurRadius: 10,
+                    offset: Offset(0, 5),
+                  ),
+                ],
+              ),
+              child: const Icon(
+                Icons.local_fire_department_rounded,
+                color: Colors.white,
+                size: 22,
               ),
             ),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                const Text(
-                  '12',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.w900,
-                    height: 1,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 6,
-                    vertical: 3,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.16),
-                    borderRadius: BorderRadius.circular(999),
-                    border: Border.all(color: Colors.white.withOpacity(0.18)),
-                  ),
-                  child: const Text(
-                    'ngày hoạt động',
+            const SizedBox(width: 10),
+            const Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Chuỗi học tập',
                     style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 8,
-                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF211A3B),
+                      fontSize: 13,
+                      fontWeight: FontWeight.w900,
                     ),
                   ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 4),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.14),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white.withOpacity(0.16)),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  for (final item in streakDays)
-                    _StreakDayBadge(label: item.$1, isActive: item.$2),
+                  SizedBox(height: 2),
+                  Text(
+                    'Duy trì thói quen mỗi ngày',
+                    style: TextStyle(
+                      color: Color(0xFF8A83A5),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ],
               ),
             ),
-            const SizedBox(height: 6),
-            Row(
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 6,
-                  ),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(999),
-                  ),
-                  child: const Text(
-                    'Học ngay',
-                    style: TextStyle(
-                      color: Color(0xFF3657E8),
-                      fontSize: 10,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3E8),
+                borderRadius: BorderRadius.circular(999),
+              ),
+              child: Text(
+                streakProvider.lastStudyDate == null
+                    ? 'Bắt đầu'
+                    : '${streakProvider.totalStudyDays} ngày học',
+                style: const TextStyle(
+                  color: Color(0xFFFF7A2F),
+                  fontSize: 10,
+                  fontWeight: FontWeight.w800,
                 ),
-                const SizedBox(width: 4),
-              ],
+              ),
             ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Row(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              '${streakProvider.currentStreak}',
+              style: const TextStyle(
+                color: Color(0xFF211A3B),
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+                height: 1,
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Padding(
+              padding: EdgeInsets.only(bottom: 1),
+              child: Text(
+                'ngày liên tiếp',
+                style: TextStyle(
+                  color: Color(0xFF6F6685),
+                  fontSize: 8,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ),
+            const Spacer(),
+            Text(
+              '$activeDays/7 ngày tuần này',
+              style: const TextStyle(
+                color: Color(0xFF8A83A5),
+                fontSize: 10,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            for (final item in streakDays)
+              _StreakDayBadge(label: item.$1, isActive: item.$2),
           ],
         ),
       ],
@@ -476,40 +799,35 @@ class _StreakDayBadge extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         Container(
-          width: 22,
-          height: 22,
+          width: 30,
+          height: 30,
           decoration: BoxDecoration(
             shape: BoxShape.circle,
-            color:
-                isActive
-                    ? const Color(0xFFFFB347)
-                    : Colors.white.withOpacity(0.14),
+            color: isActive ? const Color(0xFFFF8A3D) : const Color(0xFFF4F0FA),
             boxShadow:
                 isActive
                     ? const [
                       BoxShadow(
-                        color: Color(0x40FF9F43),
-                        blurRadius: 6,
-                        offset: Offset(0, 3),
+                        color: Color(0x2EFF8A3D),
+                        blurRadius: 8,
+                        offset: Offset(0, 4),
                       ),
                     ]
                     : null,
           ),
           child: Icon(
-            isActive
-                ? Icons.local_fire_department_rounded
-                : Icons.local_fire_department_outlined,
-            color: isActive ? Colors.white : const Color(0xFFD8DEFF),
-            size: 11,
+            isActive ? Icons.check_rounded : Icons.circle_outlined,
+            color: isActive ? Colors.white : const Color(0xFFC9C1D8),
+            size: 14,
           ),
         ),
-        const SizedBox(height: 3),
+        const SizedBox(height: 4),
         Text(
           label,
           style: TextStyle(
-            color: isActive ? Colors.white : const Color(0xFFD8DEFF),
+            color: isActive ? const Color(0xFF211A3B) : const Color(0xFF9A92AB),
             fontSize: 8,
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w800,
           ),
         ),
       ],

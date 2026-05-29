@@ -21,54 +21,56 @@ class Card_skill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return AspectRatio(
-      aspectRatio: 0.95,
+      aspectRatio: 0.9,
       child: Material(
         color: Colors.transparent,
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(24),
+          splashColor: iconcolor.withOpacity(0.08),
+          highlightColor: iconcolor.withOpacity(0.04),
           child: Ink(
-            padding: const EdgeInsets.all(18),
+            padding: const EdgeInsets.all(14),
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(24),
-              border: Border.all(color: const Color(0xFFF1F3F8), width: 1),
-             
-             
+              border: Border.all(color: const Color(0xFFF0ECF8), width: 1.2),
+              boxShadow: [
+                BoxShadow(
+                  color: const Color(0xFF2B1B55).withOpacity(0.07),
+                  blurRadius: 22,
+                  spreadRadius: -6,
+                  offset: const Offset(0, 12),
+                ),
+              ],
             ),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Container(
-                      width: 58,
-                      height: 58,
+                      width: 50,
+                      height: 50,
                       decoration: BoxDecoration(
-                        borderRadius: BorderRadius.circular(18),
-                        gradient: LinearGradient(
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                          colors: [
-                            iconBackgroundColor,
-                            iconBackgroundColor.withOpacity(0.65),
-                          ],
-                        ),
+                        color: iconBackgroundColor,
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      child: Icon(icon, color: iconcolor, size: 28),
+                      child: Icon(icon, color: iconcolor, size: 27),
                     ),
+                    const Spacer(),
                     Container(
-                      width: 32,
-                      height: 32,
+                      width: 30,
+                      height: 30,
                       decoration: BoxDecoration(
-                        color: const Color(0xFFF8FAFC),
+                        color: const Color(0xFFF8F5FF),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: const Icon(
-                        Icons.arrow_outward_rounded,
-                        size: 18,
-                        color: Color(0xFF94A3B8),
+                      child: Icon(
+                        Icons.arrow_forward_rounded,
+                        size: 17,
+                        color: iconcolor,
                       ),
                     ),
                   ],
@@ -79,10 +81,10 @@ class Card_skill extends StatelessWidget {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: const TextStyle(
-                    fontSize: 16,
+                    fontSize: 17,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF1E293B),
-                    letterSpacing: -0.2,
+                    color: Color(0xFF211A3B),
+                    letterSpacing: -0.25,
                   ),
                 ),
                 if (subtitle != null) ...[
@@ -93,12 +95,30 @@ class Card_skill extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                     style: const TextStyle(
                       fontSize: 12,
-                      height: 1.4,
-                      color: Color(0xFF64748B),
+                      height: 1.3,
+                      color: Color(0xFF7B7390),
                       fontWeight: FontWeight.w500,
                     ),
                   ),
                 ],
+                const SizedBox(height: 12),
+                Container(
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: iconBackgroundColor.withOpacity(0.75),
+                    borderRadius: BorderRadius.circular(999),
+                  ),
+                  alignment: Alignment.centerLeft,
+                  child: FractionallySizedBox(
+                    widthFactor: 0.68,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        color: iconcolor,
+                        borderRadius: BorderRadius.circular(999),
+                      ),
+                    ),
+                  ),
+                ),
               ],
             ),
           ),

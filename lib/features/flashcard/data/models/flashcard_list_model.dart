@@ -9,6 +9,10 @@ class FlashcardListModel extends FlashcardList {
     required super.description,
     required super.flashcards,
     required super.userId,
+    super.studiedCards,
+    super.progressPercent,
+    super.isCompleted,
+    super.lastStudiedAt,
   });
 
   factory FlashcardListModel.fromEntity(FlashcardList flashcardList) {
@@ -18,6 +22,10 @@ class FlashcardListModel extends FlashcardList {
       description: flashcardList.description,
       flashcards: flashcardList.flashcards,
       userId: flashcardList.userId,
+      studiedCards: flashcardList.studiedCards,
+      progressPercent: flashcardList.progressPercent,
+      isCompleted: flashcardList.isCompleted,
+      lastStudiedAt: flashcardList.lastStudiedAt,
     );
   }
 
@@ -32,6 +40,13 @@ class FlashcardListModel extends FlashcardList {
               .map((item) => FlashcardModel.fromMap(item).toEntity())
               .toList(),
       userId: map['userId'] ?? '',
+      studiedCards: (map['studiedCards'] as num?)?.toInt() ?? 0,
+      progressPercent: (map['progressPercent'] as num?)?.toDouble() ?? 0,
+      isCompleted: map['isCompleted'] == true,
+      lastStudiedAt:
+          map['lastStudiedAt'] is String
+              ? DateTime.tryParse(map['lastStudiedAt'] as String)
+              : null,
     );
   }
 
@@ -46,6 +61,10 @@ class FlashcardListModel extends FlashcardList {
               .map((flashcard) => FlashcardModel.fromEntity(flashcard).toMap())
               .toList(),
       'userId': userId,
+      'studiedCards': studiedCards,
+      'progressPercent': progressPercent,
+      'isCompleted': isCompleted,
+      'lastStudiedAt': lastStudiedAt?.toIso8601String(),
     };
   }
 
@@ -56,6 +75,10 @@ class FlashcardListModel extends FlashcardList {
       description: description,
       flashcards: List<Flashcard>.from(flashcards),
       userId: userId,
+      studiedCards: studiedCards,
+      progressPercent: progressPercent,
+      isCompleted: isCompleted,
+      lastStudiedAt: lastStudiedAt,
     );
   }
 }

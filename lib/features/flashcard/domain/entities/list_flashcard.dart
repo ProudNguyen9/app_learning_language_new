@@ -11,6 +11,14 @@ class FlashcardList {
 
   String userId;
 
+  int studiedCards;
+
+  double progressPercent;
+
+  bool isCompleted;
+
+  DateTime? lastStudiedAt;
+
   // Chuyển từ Firebase -> FlashcardList
   factory FlashcardList.fromMap(Map<String, dynamic> map) {
     return FlashcardList(
@@ -18,10 +26,18 @@ class FlashcardList {
       title: map['title'] ?? '',
       description: map['description'] ?? '',
       flashcards:
-          (map['flashcards'] as List)
-              .map((item) => Flashcard.fromMap(item as Map<String, dynamic>))
+          ((map['flashcards'] as List?) ?? const [])
+              .whereType<Map<String, dynamic>>()
+              .map((item) => Flashcard.fromMap(item))
               .toList(),
       userId: map['userId'] ?? '',
+      studiedCards: (map['studiedCards'] as num?)?.toInt() ?? 0,
+      progressPercent: (map['progressPercent'] as num?)?.toDouble() ?? 0,
+      isCompleted: map['isCompleted'] == true,
+      lastStudiedAt:
+          map['lastStudiedAt'] is String
+              ? DateTime.tryParse(map['lastStudiedAt'] as String)
+              : null,
     );
   }
 
@@ -33,6 +49,10 @@ class FlashcardList {
       'description': description,
       'flashcards': flashcards.map((f) => f.toMap()).toList(),
       'userId': userId,
+      'studiedCards': studiedCards,
+      'progressPercent': progressPercent,
+      'isCompleted': isCompleted,
+      'lastStudiedAt': lastStudiedAt?.toIso8601String(),
     };
   }
 
@@ -42,5 +62,9 @@ class FlashcardList {
     required this.description,
     required this.flashcards,
     required this.userId,
+    this.studiedCards = 0,
+    this.progressPercent = 0,
+    this.isCompleted = false,
+    this.lastStudiedAt,
   });
 }

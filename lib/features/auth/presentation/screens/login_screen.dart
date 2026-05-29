@@ -1,9 +1,15 @@
-import 'package:apphoctienganh/features/auth/presentation/providers/auth_provider.dart';
+import 'dart:async';
+
+import 'package:apphoctienganh/core/services/notification_token_service.dart';
 import 'package:apphoctienganh/core/theme/app_colors.dart';
+import 'package:apphoctienganh/features/auth/presentation/providers/auth_provider.dart';
+import 'package:apphoctienganh/features/home/presentation/providers/streak_provider.dart';
+import 'package:apphoctienganh/features/home/presentation/screens/centerhome.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -17,6 +23,37 @@ class _LoginScreenState extends State<LoginScreen> {
   final _formKey = GlobalKey<FormState>();
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
+
+  StreamSubscription<AuthState>? _authSubscription;
+
+  @override
+  void initState() {
+    super.initState();
+    _authSubscription = Supabase.instance.client.auth.onAuthStateChange.listen((
+      data,
+    ) {
+      if (!mounted) return;
+      final session = data.session;
+      if (session == null) return;
+
+      NotificationTokenService.saveCurrentFcmTokenToSupabase();
+      context.read<StreakProvider>().refreshFromSupabase(force: true);
+
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(builder: (_) => const CenterHome()),
+        (route) => false,
+      );
+    });
+  }
+
+  @override
+  void dispose() {
+    _authSubscription?.cancel();
+    emailController.dispose();
+    passwordController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {

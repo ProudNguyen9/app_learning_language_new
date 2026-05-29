@@ -1,5 +1,7 @@
 import 'package:apphoctienganh/core/theme/app_colors.dart';
 import 'package:apphoctienganh/features/auth/presentation/providers/auth_provider.dart';
+import 'package:apphoctienganh/features/home/presentation/providers/home_provider.dart';
+import 'package:apphoctienganh/features/home/presentation/providers/streak_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
@@ -15,8 +17,39 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<HomeProvider>().loadDataforsetstateinhomepage();
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
     final userProfile = context.watch<AuthProvider>().getCurrentUserProfile();
+    final streakProvider = context.watch<StreakProvider>();
+    final homeProvider = context.watch<HomeProvider>();
+    final lists = homeProvider.flashcardLists;
+    final studiedCards = lists.fold<int>(
+      0,
+      (sum, item) => sum + item.studiedCards,
+    );
+    final estimatedStudyMinutes = (studiedCards * 1.5).round();
+    final studyHoursLabel =
+        estimatedStudyMinutes < 60
+            ? '$estimatedStudyMinutes phút học tích lũy'
+            : '${(estimatedStudyMinutes / 60).toStringAsFixed(1)} giờ học tích lũy';
+
+    final xpFromStudy =
+        (studiedCards * 10) + (streakProvider.totalStudyDays * 20);
+    final level = _computeLevel(xpFromStudy);
+    final levelFloorXp = (level - 1) * 200;
+    final xpInLevel = (xpFromStudy - levelFloorXp).clamp(0, 200);
+    final levelProgress = (xpInLevel / 200).clamp(0.0, 1.0);
+    final nextLevelPercent = (levelProgress * 100).round();
+    final weeklyActiveDays =
+        streakProvider.weeklyActivity.where((item) => item).length;
     final imageUrl = userProfile?.photoUrl ?? '';
     final email = userProfile?.email ?? 'Email chưa có';
     final rawDisplayName = (userProfile?.displayName ?? '').trim();
@@ -142,7 +175,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Người học tiếng Anh từ tháng 01/2025',
+                      email,
                       style: GoogleFonts.lexend(
                         fontSize: 12,
                         color: const Color(0xFF7B7599),
@@ -153,35 +186,37 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 20),
               Row(
-                children: const [
+                children: [
                   Expanded(
                     child: _StatCard(
                       icon: Icons.local_fire_department_rounded,
-                      iconColor: Color(0xFF4A6CF7),
-                      value: '5,240',
+                      iconColor: const Color(0xFF4A6CF7),
+                      value: '$xpFromStudy',
                       label: 'XP',
                     ),
                   ),
-                  SizedBox(width: 10),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: _StatCard(
                       icon: Icons.whatshot_rounded,
-                      iconColor: Color(0xFFB67D18),
-                      value: '14',
+                      iconColor: const Color(0xFFB67D18),
+                      value: '${streakProvider.currentStreak}',
                       label: 'CHUỖI',
                     ),
                   ),
-                  SizedBox(width: 10),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: _StatCard(
                       icon: Icons.workspace_premium_outlined,
-                      iconColor: Color(0xFF1AA8C8),
-                      value: '12',
-                      label: 'HUY HIỆU',
+                      iconColor: const Color(0xFF1AA8C8),
+                      value: '$weeklyActiveDays',
+                      label: 'TUẦN',
                     ),
                   ),
                 ],
               ),
+              const SizedBox(height: 16),
+              _ProfileStreakCard(streakProvider: streakProvider),
               const SizedBox(height: 16),
               Container(
                 width: double.infinity,
@@ -219,7 +254,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                               ),
                               const SizedBox(height: 4),
                               Text(
-                                'Level 12',
+                                'Level $level',
                                 style: GoogleFonts.plusJakartaSans(
                                   fontSize: 27,
                                   fontWeight: FontWeight.w800,
@@ -239,7 +274,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                             borderRadius: BorderRadius.circular(999),
                           ),
                           child: Text(
-                            'Nâng cao',
+                            level >= 10 ? 'Nâng cao' : 'Đang phát triển',
                             style: GoogleFonts.lexend(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -254,7 +289,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       children: [
                         Expanded(
                           child: Text(
-                            '75% để lên cấp 13',
+                            '$nextLevelPercent% để lên cấp ${level + 1}',
                             style: GoogleFonts.lexend(
                               fontSize: 11,
                               fontWeight: FontWeight.w600,
@@ -263,7 +298,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                           ),
                         ),
                         Text(
-                          '1,250 / 2,000 XP',
+                          '$xpInLevel / 200 XP',
                           style: GoogleFonts.lexend(
                             fontSize: 11,
                             fontWeight: FontWeight.w600,
@@ -276,7 +311,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ClipRRect(
                       borderRadius: BorderRadius.circular(999),
                       child: LinearProgressIndicator(
-                        value: 0.75,
+                        value: levelProgress,
                         minHeight: 7,
                         backgroundColor: Colors.white.withOpacity(0.24),
                         valueColor: const AlwaysStoppedAnimation<Color>(
@@ -294,7 +329,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         ),
                         const SizedBox(width: 6),
                         Text(
-                          '48 giờ học tích lũy',
+                          studyHoursLabel,
                           style: GoogleFonts.lexend(
                             fontSize: 11,
                             color: Colors.white.withOpacity(0.9),
@@ -331,31 +366,31 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 ],
               ),
               const SizedBox(height: 10),
-              const SizedBox(
+              SizedBox(
                 height: 86,
                 child: Row(
                   children: [
-                    Expanded(
+                    const Expanded(
                       child: _AchievementCard(
                         icon: Icons.wb_sunny_outlined,
                         iconColor: Color(0xFFC79A2C),
                         title: 'Early Bird',
                       ),
                     ),
-                    SizedBox(width: 10),
-                    Expanded(
+                    const SizedBox(width: 10),
+                    const Expanded(
                       child: _AchievementCard(
                         icon: Icons.bolt_rounded,
                         iconColor: Color(0xFF4A6CF7),
                         title: 'Fast Learner',
                       ),
                     ),
-                    SizedBox(width: 10),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: _AchievementCard(
                         icon: Icons.local_fire_department_rounded,
-                        iconColor: Color(0xFF21B3C5),
-                        title: 'Streak',
+                        iconColor: const Color(0xFF21B3C5),
+                        title: 'Streak ${streakProvider.currentStreak}',
                       ),
                     ),
                   ],
@@ -372,30 +407,46 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Column(
-                  children: const [
+                  children: [
                     _ProfileMenuTile(
                       icon: Icons.style_outlined,
-                      iconColor: Color(0xFF4D67F5),
-                      backgroundColor: Color(0xFFEFF2FF),
+                      iconColor: const Color(0xFF4D67F5),
+                      backgroundColor: const Color(0xFFEFF2FF),
                       title: 'Bộ thẻ của tôi',
+                      onTap: () {
+                        Navigator.of(context).maybePop();
+                      },
                     ),
                     _ProfileMenuTile(
                       icon: Icons.favorite_border_rounded,
-                      iconColor: Color(0xFF2CA6A4),
-                      backgroundColor: Color(0xFFE9FBF9),
+                      iconColor: const Color(0xFF2CA6A4),
+                      backgroundColor: const Color(0xFFE9FBF9),
                       title: 'Bài học yêu thích',
+                      onTap: () {
+                        _showInfo(
+                          'Chức năng bài học yêu thích sẽ được cập nhật sớm.',
+                        );
+                      },
                     ),
                     _ProfileMenuTile(
                       icon: Icons.card_giftcard_rounded,
-                      iconColor: Color(0xFFC19334),
-                      backgroundColor: Color(0xFFFFF4DE),
+                      iconColor: const Color(0xFFC19334),
+                      backgroundColor: const Color(0xFFFFF4DE),
                       title: 'Mời bạn bè',
+                      onTap: () {
+                        _showInfo('Tính năng mời bạn bè đang được phát triển.');
+                      },
                     ),
                     _ProfileMenuTile(
                       icon: Icons.help_outline_rounded,
-                      iconColor: Color(0xFF7A67E8),
-                      backgroundColor: Color(0xFFF2EEFF),
+                      iconColor: const Color(0xFF7A67E8),
+                      backgroundColor: const Color(0xFFF2EEFF),
                       title: 'Trung tâm trợ giúp',
+                      onTap: () {
+                        _showInfo(
+                          'Liên hệ hỗ trợ qua email: support@anhlish.app',
+                        );
+                      },
                     ),
                   ],
                 ),
@@ -430,6 +481,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  int _computeLevel(int xp) {
+    if (xp <= 0) return 1;
+    return (xp ~/ 200) + 1;
+  }
+
+  void _showInfo(String message) {
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(message)));
+  }
+
   Widget _buildFallbackAvatar(String firstChar) {
     return Container(
       color: const Color(0xFF2B2554),
@@ -462,6 +524,118 @@ class _ProfileScreenState extends State<ProfileScreen> {
             .toList();
 
     return words.isEmpty ? 'Người dùng Anh Lish' : words.join(' ');
+  }
+}
+
+class _ProfileStreakCard extends StatelessWidget {
+  const _ProfileStreakCard({required this.streakProvider});
+
+  final StreakProvider streakProvider;
+
+  @override
+  Widget build(BuildContext context) {
+    final labels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(
+                Icons.local_fire_department_rounded,
+                color: const Color(0xFFFF9F43),
+              ),
+              const SizedBox(width: 8),
+              Text(
+                'Chuỗi học tập',
+                style: GoogleFonts.plusJakartaSans(
+                  fontSize: 18,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF27214F),
+                ),
+              ),
+              const Spacer(),
+              Text(
+                '${streakProvider.currentStreak} ngày',
+                style: GoogleFonts.lexend(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: ColorSetting.colorprimary,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          Text(
+            streakProvider.lastStudyDate == null
+                ? 'Bạn chưa bắt đầu streak. Hãy vào một bài học để điểm danh ngày đầu tiên.'
+                : 'Bạn đã học ${streakProvider.totalStudyDays} ngày. Tiếp tục duy trì để không đứt chuỗi nhé.',
+            style: GoogleFonts.lexend(
+              fontSize: 12,
+              height: 1.5,
+              color: const Color(0xFF7B7599),
+            ),
+          ),
+          const SizedBox(height: 14),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: List.generate(labels.length, (index) {
+              final isActive = streakProvider.weeklyActivity[index];
+              return _ProfileWeekDayBadge(
+                label: labels[index],
+                isActive: isActive,
+              );
+            }),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ProfileWeekDayBadge extends StatelessWidget {
+  const _ProfileWeekDayBadge({required this.label, required this.isActive});
+
+  final String label;
+  final bool isActive;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Container(
+          width: 32,
+          height: 32,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: isActive ? const Color(0xFFFFB347) : const Color(0xFFF1EEFB),
+          ),
+          child: Icon(
+            isActive
+                ? Icons.local_fire_department_rounded
+                : Icons.local_fire_department_outlined,
+            size: 16,
+            color: isActive ? Colors.white : const Color(0xFFA09AB9),
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          label,
+          style: GoogleFonts.lexend(
+            fontSize: 10,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF7B7599),
+          ),
+        ),
+      ],
+    );
   }
 }
 
@@ -572,12 +746,14 @@ class _ProfileMenuTile extends StatelessWidget {
     required this.iconColor,
     required this.backgroundColor,
     required this.title,
+    required this.onTap,
   });
 
   final IconData icon;
   final Color iconColor;
   final Color backgroundColor;
   final String title;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -604,7 +780,7 @@ class _ProfileMenuTile extends StatelessWidget {
         Icons.chevron_right_rounded,
         color: Color(0xFF8A85A5),
       ),
-      onTap: () {},
+      onTap: onTap,
     );
   }
 }

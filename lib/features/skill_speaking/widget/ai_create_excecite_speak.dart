@@ -133,7 +133,9 @@ class _CreateSpeakingLessonState extends State<createSpeakingLesson> {
                 'role': 'system',
                 'content':
                     'Bạn là trợ lý tạo bài luyện đọc cho app học ngoại ngữ. '
-                    'Hãy tạo bài luyện đọc ngắn, tự nhiên, dễ luyện nói thành tiếng. '
+                    'Phải dùng đúng ngôn ngữ mà người dùng yêu cầu trong prompt/topic. '
+                    'Nếu người dùng ghi bằng tiếng Việt, hoặc yêu cầu một ngôn ngữ bất kỳ như Nhật, Hàn, Trung, Pháp..., thì content phải đúng ngôn ngữ đó và không được tự ý đổi sang tiếng Anh. '
+                    'Chỉ khi người dùng không nói rõ ngôn ngữ thì mới mặc định dùng tiếng Anh. '
                     'Luôn trả về JSON thuần, không markdown, không giải thích thêm. '
                     'Định dạng bắt buộc: {"title":"...","content":"...","level":"..."}.',
               },

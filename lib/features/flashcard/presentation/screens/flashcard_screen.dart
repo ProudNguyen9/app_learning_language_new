@@ -7,6 +7,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'package:provider/provider.dart';
 import 'package:flip_card/flip_card.dart';
 import 'package:apphoctienganh/features/home/presentation/providers/home_provider.dart';
+import 'package:apphoctienganh/features/home/presentation/providers/streak_provider.dart';
 
 class FlashcardScreen extends StatefulWidget {
   final FlashcardList flashcardList;
@@ -22,6 +23,7 @@ class FlashcardScreen extends StatefulWidget {
 
 class _FlashcardScreenState extends State<FlashcardScreen> {
   final List<GlobalKey<FlipCardState>> flipCardKeys = [];
+  int _maxStudiedCards = 0;
 
   @override
   void initState() {
@@ -29,10 +31,81 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
     // Lưu danh sách flashcards vào provider khi màn hình được tạo
     context.read<HomeProvider>().setFlashcards(widget.flashcardList.flashcards);
 
+    _maxStudiedCards = widget.flashcardList.flashcards.isEmpty ? 0 : 1;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      if (!mounted) return;
+      _syncStudyProgress();
+      await _checkInStreak();
+    });
+
     // Tạo flip card keys cho từng flashcard
     for (var i = 0; i < widget.flashcardList.flashcards.length; i++) {
       flipCardKeys.add(GlobalKey<FlipCardState>());
     }
+  }
+
+  @override
+  void dispose() {
+    _syncStudyProgress();
+    super.dispose();
+  }
+
+  void _syncStudyProgress() {
+    final provider = context.read<HomeProvider>();
+    final studiedCards = provider.currentIndex + 1;
+    if (studiedCards <= _maxStudiedCards) {
+      return;
+    }
+    _maxStudiedCards = studiedCards;
+    provider.trackFlashcardStudySession(
+      flashcardList: widget.flashcardList,
+      studiedCards: _maxStudiedCards,
+    );
+  }
+
+  void _goToNextCard() {
+    context.read<HomeProvider>().nextCard();
+    _syncStudyProgress();
+  }
+
+  void _goToPreviousCard() {
+    context.read<HomeProvider>().previousCard();
+    _syncStudyProgress();
+  }
+
+  Future<void> _checkInStreak() async {
+    final result = await context.read<StreakProvider>().recordStudySession();
+    if (!mounted || !result.isNewDay) {
+      return;
+    }
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          title: Text(
+            'Điểm danh học tập',
+            style: GoogleFonts.plusJakartaSans(
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF20254D),
+            ),
+          ),
+          content: Text(
+            'Bạn đã hoàn thành check-in hôm nay. Chuỗi hiện tại là ${result.streakDays} ngày.',
+            style: GoogleFonts.plusJakartaSans(height: 1.5),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: const Text('Tuyệt vời'),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   // giao diện của cái card
@@ -228,7 +301,7 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
                         children: [
                           FlashcardNavButton(
                             icon: Icons.arrow_back_ios_new_rounded,
-                            onTap: context.read<HomeProvider>().previousCard,
+                            onTap: _goToPreviousCard,
                           ),
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
@@ -254,7 +327,7 @@ class _FlashcardScreenState extends State<FlashcardScreen> {
                           ),
                           FlashcardNavButton(
                             icon: Icons.arrow_forward_ios_rounded,
-                            onTap: context.read<HomeProvider>().nextCard,
+                            onTap: _goToNextCard,
                           ),
                         ],
                       ),

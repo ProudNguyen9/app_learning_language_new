@@ -17,6 +17,9 @@ class FileLibraryScreen extends StatefulWidget {
 }
 
 class _FileLibraryScreenState extends State<FileLibraryScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _selectedFilter = 'Tất cả';
+
   Future<void> _refreshLessons() {
     return context.read<HomeProvider>().loadDataforsetstateinhomepage();
   }
@@ -124,123 +127,210 @@ class _FileLibraryScreenState extends State<FileLibraryScreen> {
   }
 
   @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<FlashcardList> _applyLessonFilters(List<FlashcardList> source) {
+    final query = _normalizeSearchText(_searchController.text);
+    var items = List<FlashcardList>.from(source);
+
+    switch (_selectedFilter) {
+      case 'Gần đây':
+        items =
+            items.where((lesson) => lesson.lastStudiedAt != null).toList()
+              ..sort((a, b) => b.lastStudiedAt!.compareTo(a.lastStudiedAt!));
+        break;
+      case 'Đang học':
+        items =
+            items
+                .where(
+                  (lesson) =>
+                      lesson.flashcards.isNotEmpty &&
+                      lesson.progressPercent > 0 &&
+                      lesson.progressPercent < 1,
+                )
+                .toList()
+              ..sort((a, b) => b.progressPercent.compareTo(a.progressPercent));
+        break;
+      case 'Tất cả':
+      default:
+        break;
+    }
+
+    if (query.isNotEmpty) {
+      items =
+          items.where((lesson) {
+            final searchableContent = _normalizeSearchText(
+              [
+                lesson.title,
+                lesson.description,
+                ...lesson.flashcards.expand(
+                  (card) => [card.question, card.answer],
+                ),
+              ].join(' '),
+            );
+
+            return searchableContent.contains(query);
+          }).toList();
+    }
+
+    return items;
+  }
+
+  String _normalizeSearchText(String value) {
+    return value.trim().toLowerCase();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final lessons = context.watch<HomeProvider>().flashcardLists;
+    final homeProvider = context.watch<HomeProvider>();
+    final lessons = _applyLessonFilters(homeProvider.flashcardLists);
+    final recentLessons = homeProvider.recentFlashcardLists.take(3).toList();
 
     return Scaffold(
       backgroundColor: const Color(0xFFF4F1FB),
       body: SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  ClipOval(
-                    child: Image.asset(
-                      'assets/uselogo.jpg',
-                      width: 40,
-                      height: 40,
-                      fit: BoxFit.cover,
-                    ),
-                  ),
-                  const Gap(8),
-                  Text(
-                    'Anh Lish',
-                    style: GoogleFonts.plusJakartaSans(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 20,
-                      color: ColorSetting.colorprimary,
-                    ),
-                  ),
-                ],
-              ),
-
-              const Gap(10),
-              Text(
-                'Thư viện của tôi',
-                style: GoogleFonts.plusJakartaSans(
-                  fontSize: 24,
-                  fontWeight: FontWeight.w800,
-                  color: const Color(0xFF261F52),
-                ),
-              ),
-              const Gap(6),
-              Text(
-                'Quản lý và ôn tập các bộ thẻ nhớ của bạn.',
-                style: GoogleFonts.lexend(
-                  fontSize: 13,
-                  fontWeight: FontWeight.w400,
-                  color: const Color(0xFF726D8E),
-                ),
-              ),
-              const Gap(14),
-              SizedBox(
-                width: double.infinity,
-                height: 46,
-                child: ElevatedButton.icon(
-                  onPressed: widget.onCreateFlashcard,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: ColorSetting.colorprimary,
-                    foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  icon: const Icon(Icons.add_circle_outline_rounded),
-                  label: Text(
-                    'Tạo bộ thẻ mới',
-                    style: GoogleFonts.lexend(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                ),
-              ),
-              const Gap(14),
-              Container(
-                height: 42,
-                decoration: BoxDecoration(
-                  color: Colors.white,
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const TextField(
-                  decoration: InputDecoration(
-                    prefixIcon: Icon(Icons.search_rounded),
-                    hintText: 'Tìm kiếm bộ thẻ...',
-                    border: InputBorder.none,
-                    contentPadding: EdgeInsets.symmetric(vertical: 10),
-                  ),
-                ),
-              ),
-              const Gap(12),
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: Row(
+        child: RefreshIndicator(
+          onRefresh: _refreshLessons,
+          child: SingleChildScrollView(
+            physics: const AlwaysScrollableScrollPhysics(),
+            padding: const EdgeInsets.all(14),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
                   children: [
-                    _buildFilterChip('Tất cả', true),
-                    const SizedBox(width: 8),
-                    _buildFilterChip('Gần đây', false),
-                    const SizedBox(width: 8),
-                    _buildFilterChip('Thư mục', false),
+                    ClipOval(
+                      child: Image.asset(
+                        'assets/uselogo.jpg',
+                        width: 40,
+                        height: 40,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    const Gap(8),
+                    Text(
+                      'Anh Lish',
+                      style: GoogleFonts.plusJakartaSans(
+                        fontWeight: FontWeight.w700,
+                        fontSize: 20,
+                        color: ColorSetting.colorprimary,
+                      ),
+                    ),
                   ],
                 ),
-              ),
-              const Gap(16),
-              Expanded(
-                child: RefreshIndicator(
-                  onRefresh: _refreshLessons,
-                  child: ListView.builder(
-                    physics: const AlwaysScrollableScrollPhysics(),
+
+                const Gap(10),
+                Text(
+                  'Thư viện của tôi',
+                  style: GoogleFonts.plusJakartaSans(
+                    fontSize: 24,
+                    fontWeight: FontWeight.w800,
+                    color: const Color(0xFF261F52),
+                  ),
+                ),
+                const Gap(6),
+                Text(
+                  'Quản lý và ôn tập các bộ thẻ nhớ của bạn.',
+                  style: GoogleFonts.lexend(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w400,
+                    color: const Color(0xFF726D8E),
+                  ),
+                ),
+                const Gap(14),
+                SizedBox(
+                  width: double.infinity,
+                  height: 46,
+                  child: ElevatedButton.icon(
+                    onPressed: widget.onCreateFlashcard,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: ColorSetting.colorprimary,
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                    ),
+                    icon: const Icon(Icons.add_circle_outline_rounded),
+                    label: Text(
+                      'Tạo bộ thẻ mới',
+                      style: GoogleFonts.lexend(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const Gap(14),
+                Container(
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (_) => setState(() {}),
+                    decoration: InputDecoration(
+                      prefixIcon: const Icon(Icons.search_rounded),
+                      suffixIcon:
+                          _searchController.text.isEmpty
+                              ? null
+                              : IconButton(
+                                onPressed: () {
+                                  _searchController.clear();
+                                  setState(() {});
+                                },
+                                icon: const Icon(Icons.close_rounded),
+                              ),
+                      hintText: 'Tìm kiếm bộ thẻ, từ vựng...',
+                      border: InputBorder.none,
+                      contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                    ),
+                  ),
+                ),
+                const Gap(12),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: [
+                      _buildFilterChip('Tất cả', _selectedFilter == 'Tất cả'),
+                      const SizedBox(width: 8),
+                      _buildFilterChip('Gần đây', _selectedFilter == 'Gần đây'),
+                      const SizedBox(width: 8),
+                      _buildFilterChip(
+                        'Đang học',
+                        _selectedFilter == 'Đang học',
+                      ),
+                    ],
+                  ),
+                ),
+                const Gap(16),
+                if (recentLessons.isNotEmpty) ...[
+                  _RecentStudySection(recentLessons: recentLessons),
+                  const Gap(16),
+                ],
+                if (lessons.isEmpty)
+                  _EmptyLibraryResult(
+                    isSearching: _searchController.text.trim().isNotEmpty,
+                    selectedFilter: _selectedFilter,
+                    onCreateFlashcard: widget.onCreateFlashcard,
+                  )
+                else
+                  ListView.builder(
+                    shrinkWrap: true,
+                    physics: const NeverScrollableScrollPhysics(),
                     itemCount: lessons.length + 2,
                     itemBuilder: (context, index) {
                       if (index < lessons.length) {
                         final lesson = lessons[index];
-                        final progress =
-                            lesson.flashcards.isEmpty
-                                ? 0.0
-                                : (lesson.flashcards.length % 10) / 10;
+                        final progress = lesson.progressPercent.clamp(0.0, 1.0);
+                        final studiedCards = lesson.studiedCards.clamp(
+                          0,
+                          lesson.flashcards.length,
+                        );
 
                         return InkWell(
                           onTap: () {
@@ -353,24 +443,48 @@ class _FileLibraryScreenState extends State<FileLibraryScreen> {
                                   ],
                                 ),
                                 const Gap(12),
-                                Text(
-                                  'Tiến độ',
-                                  style: GoogleFonts.lexend(
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                    color: const Color(0xFF625D7A),
-                                  ),
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      'Tiến độ',
+                                      style: GoogleFonts.lexend(
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF625D7A),
+                                      ),
+                                    ),
+                                    Text(
+                                      '$studiedCards/${lesson.flashcards.length} thẻ',
+                                      style: GoogleFonts.lexend(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: const Color(0xFF8179A4),
+                                      ),
+                                    ),
+                                  ],
                                 ),
                                 const Gap(6),
                                 ClipRRect(
                                   borderRadius: BorderRadius.circular(20),
                                   child: LinearProgressIndicator(
-                                    value: progress == 0 ? 0.15 : progress,
+                                    value: progress,
                                     minHeight: 7,
                                     backgroundColor: const Color(0xFFE9E3FA),
                                     valueColor: AlwaysStoppedAnimation<Color>(
                                       ColorSetting.colorprimary,
                                     ),
+                                  ),
+                                ),
+                                const Gap(8),
+                                Text(
+                                  lesson.lastStudiedAt == null
+                                      ? 'Chưa có lượt học gần đây'
+                                      : 'Lần học gần nhất: ${_buildRecentLabel(lesson.lastStudiedAt)}',
+                                  style: GoogleFonts.lexend(
+                                    fontSize: 11,
+                                    color: const Color(0xFF8179A4),
                                   ),
                                 ),
                               ],
@@ -492,9 +606,8 @@ class _FileLibraryScreenState extends State<FileLibraryScreen> {
                       );
                     },
                   ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -502,19 +615,223 @@ class _FileLibraryScreenState extends State<FileLibraryScreen> {
   }
 
   Widget _buildFilterChip(String label, bool isSelected) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-      decoration: BoxDecoration(
-        color: isSelected ? ColorSetting.colorprimary : const Color(0xFFE8E1FA),
-        borderRadius: BorderRadius.circular(999),
-      ),
-      child: Text(
-        label,
-        style: GoogleFonts.lexend(
-          fontSize: 12,
-          fontWeight: FontWeight.w600,
-          color: isSelected ? Colors.white : const Color(0xFF655F85),
+    return InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: () {
+        if (_selectedFilter == label) return;
+        setState(() {
+          _selectedFilter = label;
+        });
+      },
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+        decoration: BoxDecoration(
+          color:
+              isSelected ? ColorSetting.colorprimary : const Color(0xFFE8E1FA),
+          borderRadius: BorderRadius.circular(999),
         ),
+        child: Text(
+          label,
+          style: GoogleFonts.lexend(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: isSelected ? Colors.white : const Color(0xFF655F85),
+          ),
+        ),
+      ),
+    );
+  }
+
+  String _buildRecentLabel(DateTime? value) {
+    if (value == null) {
+      return 'Chưa học';
+    }
+
+    final now = DateTime.now();
+    final difference = now.difference(value);
+    if (difference.inMinutes < 1) {
+      return 'Vừa mới học';
+    }
+    if (difference.inHours < 1) {
+      return '${difference.inMinutes} phút trước';
+    }
+    if (difference.inDays < 1) {
+      return '${difference.inHours} giờ trước';
+    }
+    if (difference.inDays == 1) {
+      return 'Hôm qua';
+    }
+    if (difference.inDays < 7) {
+      return '${difference.inDays} ngày trước';
+    }
+    return 'Tuần trước';
+  }
+}
+
+class _EmptyLibraryResult extends StatelessWidget {
+  const _EmptyLibraryResult({
+    required this.isSearching,
+    required this.selectedFilter,
+    required this.onCreateFlashcard,
+  });
+
+  final bool isSearching;
+  final String selectedFilter;
+  final VoidCallback onCreateFlashcard;
+
+  @override
+  Widget build(BuildContext context) {
+    final title =
+        isSearching ? 'Không tìm thấy bộ thẻ' : 'Chưa có bộ thẻ phù hợp';
+    final subtitle =
+        isSearching
+            ? 'Thử nhập từ khóa khác hoặc xóa tìm kiếm để xem toàn bộ thư viện.'
+            : selectedFilter == 'Đang học'
+            ? 'Bạn chưa có bộ thẻ nào đang học dở. Hãy bắt đầu một bộ mới nhé.'
+            : 'Hãy tạo bộ thẻ đầu tiên để bắt đầu học từ vựng.';
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 28),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE5DDF7)),
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 58,
+            height: 58,
+            decoration: const BoxDecoration(
+              color: Color(0xFFECE6FF),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              isSearching
+                  ? Icons.search_off_rounded
+                  : Icons.folder_open_rounded,
+              color: ColorSetting.colorprimary,
+              size: 28,
+            ),
+          ),
+          const Gap(14),
+          Text(
+            title,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 17,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF241B4A),
+            ),
+          ),
+          const Gap(8),
+          Text(
+            subtitle,
+            textAlign: TextAlign.center,
+            style: GoogleFonts.lexend(
+              fontSize: 12.5,
+              height: 1.45,
+              color: const Color(0xFF8179A4),
+            ),
+          ),
+          if (!isSearching) ...[
+            const Gap(16),
+            ElevatedButton.icon(
+              onPressed: onCreateFlashcard,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: ColorSetting.colorprimary,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(999),
+                ),
+              ),
+              icon: const Icon(Icons.add_rounded),
+              label: Text(
+                'Tạo bộ thẻ mới',
+                style: GoogleFonts.lexend(fontWeight: FontWeight.w600),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+class _RecentStudySection extends StatelessWidget {
+  const _RecentStudySection({required this.recentLessons});
+
+  final List<FlashcardList> recentLessons;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            'Vừa học',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF221B4B),
+            ),
+          ),
+          const Gap(10),
+          for (final lesson in recentLessons) ...[
+            Row(
+              children: [
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFF1DC),
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: const Icon(
+                    Icons.style_rounded,
+                    color: Color(0xFFCF9A2C),
+                    size: 18,
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        lesson.title,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: GoogleFonts.plusJakartaSans(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w700,
+                          color: const Color(0xFF221B4B),
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        '${lesson.studiedCards}/${lesson.flashcards.length} thẻ • ${(lesson.progressPercent * 100).round()}%',
+                        style: GoogleFonts.lexend(
+                          fontSize: 11,
+                          color: const Color(0xFF8179A4),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+            if (lesson != recentLessons.last) const Gap(10),
+          ],
+        ],
       ),
     );
   }

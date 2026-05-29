@@ -49,17 +49,20 @@ class SpeakingLessonBusiness {
     final payload = {
       'task': 'speaking_reading_lesson',
       'instruction':
-          'Tạo một bài luyện đọc ngắn bằng tiếng Anh cho người học ngoại ngữ. '
+          'Tạo một bài luyện đọc ngắn theo đúng ngôn ngữ mà người dùng yêu cầu trong topic. '
+          'Nếu topic yêu cầu tiếng Việt, tiếng Nhật, tiếng Hàn hay bất kỳ ngôn ngữ nào khác thì content phải dùng đúng ngôn ngữ đó, tuyệt đối không tự động đổi sang tiếng Anh. '
+          'Chỉ khi topic không nêu rõ ngôn ngữ thì mới mặc định dùng tiếng Anh. '
           'Nội dung phải dễ đọc thành tiếng, tự nhiên, rõ ý và phù hợp luyện phát âm. '
           'Trả về JSON thuần, không markdown, không giải thích thêm.',
       'requirements': {
-        'title': 'Tiêu đề bài đọc ngắn gọn bằng tiếng Việt',
+        'title':
+            'Tiêu đề ngắn gọn, ưu tiên cùng ngôn ngữ với content trừ khi người dùng yêu cầu khác',
         'content':
-            'Một đoạn văn tiếng Anh dài khoảng 80 đến 140 từ, chia câu rõ ràng để luyện đọc',
+            'Một đoạn văn dài khoảng 80 đến 140 từ hoặc độ dài tương đương, chia câu rõ ràng, dùng đúng ngôn ngữ người dùng yêu cầu trong topic',
         'level': normalizedLevel,
         'topic':
             normalizedTopic.isEmpty
-                ? 'chủ đề giao tiếp hằng ngày'
+                ? 'chủ đề giao tiếp hằng ngày, mặc định tạo bằng tiếng Anh nếu không có yêu cầu ngôn ngữ riêng'
                 : normalizedTopic,
       },
       'format': {'title': 'string', 'content': 'string', 'level': 'string'},

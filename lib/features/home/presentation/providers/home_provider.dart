@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:apphoctienganh/features/flashcard/domain/entities/flashcard.dart';
 import 'package:apphoctienganh/features/flashcard/domain/entities/list_flashcard.dart';
 import 'package:apphoctienganh/core/data/local_flashcard_store.dart';
@@ -7,6 +9,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class HomeProvider extends ChangeNotifier {
   List<FlashcardList> _flashcardLists = [];
   List<FlashcardList> get flashcardLists => _flashcardLists;
+  List<FlashcardList> get recentFlashcardLists {
+    final items =
+        _flashcardLists.where((item) => item.lastStudiedAt != null).toList()
+          ..sort((a, b) => b.lastStudiedAt!.compareTo(a.lastStudiedAt!));
+    return items;
+  }
+
   final SupabaseClient _supabase = Supabase.instance.client;
   List<Flashcard> _originalFlashcards =
       []; // bản gốc trả về khi sắp xếp ở next stepcarrd
@@ -32,9 +41,23 @@ class HomeProvider extends ChangeNotifier {
           .select()
           .eq('user_id', user.id);
 
+      final progressRows = await _supabase
+          .from('user_progress')
+          .select('lesson_id, score, completed, completed_at')
+          .eq('user_id', user.id)
+          .order('completed_at', ascending: false);
+
       final vocabularyMap = {
         for (final item in vocabularies) item['vocab_id'] as int: item,
       };
+      final progressByLesson = <int, Map<String, dynamic>>{};
+      for (final row in progressRows) {
+        final lessonId = (row['lesson_id'] as num?)?.toInt();
+        if (lessonId == null || progressByLesson.containsKey(lessonId)) {
+          continue;
+        }
+        progressByLesson[lessonId] = Map<String, dynamic>.from(row);
+      }
 
       _flashcardLists =
           lessons.map<FlashcardList>((lesson) {
@@ -79,12 +102,27 @@ class HomeProvider extends ChangeNotifier {
                     )
                     .toList();
 
+            final lessonId = (lesson['lesson_id'] as num?)?.toInt();
+            final progress =
+                lessonId == null ? null : progressByLesson[lessonId];
+            final progressPercent = _normalizeProgressPercent(progress);
+            final isCompleted =
+                progress?['completed'] == true || progressPercent >= 1;
+
             return FlashcardList(
               id: (lesson['lesson_id'] ?? '').toString(),
               title: (lesson['title'] ?? '').toString(),
               description: (content['description'] ?? '').toString(),
               flashcards: flashcards,
               userId: (lesson['user_id'] ?? '').toString(),
+              studiedCards: _resolveStudiedCards(
+                totalCards: flashcards.length,
+                progressPercent: progressPercent,
+                isCompleted: isCompleted,
+              ),
+              progressPercent: progressPercent,
+              isCompleted: isCompleted,
+              lastStudiedAt: _parseDateTime(progress?['completed_at']),
             );
           }).toList();
     } catch (e) {
@@ -132,6 +170,12 @@ class HomeProvider extends ChangeNotifier {
               .whereType<int>()
               .toList() ??
           <int>[];
+
+      await _supabase
+          .from('user_progress')
+          .delete()
+          .eq('lesson_id', lessonId)
+          .eq('user_id', user.id);
 
       await _supabase
           .from('lessons')
@@ -217,6 +261,96 @@ class HomeProvider extends ChangeNotifier {
         break;
     }
     notifyListeners();
+  }
+
+  Future<void> trackFlashcardStudySession({
+    required FlashcardList flashcardList,
+    required int studiedCards,
+  }) async {
+    final user = _supabase.auth.currentUser;
+    final lessonId = int.tryParse(flashcardList.id);
+    if (user == null || lessonId == null) {
+      return;
+    }
+
+    final totalCards = flashcardList.flashcards.length;
+    if (totalCards == 0) {
+      return;
+    }
+
+    final safeStudiedCards = studiedCards.clamp(0, totalCards);
+    final progressPercent = safeStudiedCards / totalCards;
+    final completedAt = DateTime.now();
+
+    try {
+      await _supabase.from('user_progress').insert({
+        'user_id': user.id,
+        'lesson_id': lessonId,
+        'score': (progressPercent * 100).round(),
+        'completed': progressPercent >= 1,
+        'completed_at': completedAt.toIso8601String(),
+      });
+
+      _flashcardLists =
+          _flashcardLists.map((item) {
+            if (item.id != flashcardList.id) {
+              return item;
+            }
+            return FlashcardList(
+              id: item.id,
+              title: item.title,
+              description: item.description,
+              flashcards: item.flashcards,
+              userId: item.userId,
+              studiedCards: safeStudiedCards,
+              progressPercent: progressPercent,
+              isCompleted: progressPercent >= 1,
+              lastStudiedAt: completedAt,
+            );
+          }).toList();
+      notifyListeners();
+    } catch (e) {
+      debugPrint('Lỗi lưu tiến độ flashcard: $e');
+    }
+  }
+
+  double _normalizeProgressPercent(Map<String, dynamic>? progress) {
+    if (progress == null) {
+      return 0;
+    }
+
+    final rawScore = (progress['score'] as num?)?.toDouble();
+    if (rawScore == null) {
+      return progress['completed'] == true ? 1 : 0;
+    }
+
+    if (rawScore <= 1) {
+      return rawScore.clamp(0, 1).toDouble();
+    }
+
+    return (rawScore / 100).clamp(0, 1).toDouble();
+  }
+
+  int _resolveStudiedCards({
+    required int totalCards,
+    required double progressPercent,
+    required bool isCompleted,
+  }) {
+    if (totalCards <= 0) {
+      return 0;
+    }
+    if (isCompleted) {
+      return totalCards;
+    }
+
+    return min(totalCards, (progressPercent * totalCards).round());
+  }
+
+  DateTime? _parseDateTime(dynamic value) {
+    if (value is String) {
+      return DateTime.tryParse(value);
+    }
+    return null;
   }
 }
 

@@ -1,5 +1,6 @@
 import 'package:apphoctienganh/core/theme/app_colors.dart';
 import 'package:apphoctienganh/features/learning/presentation/providers/speech_provider.dart';
+import 'package:apphoctienganh/features/home/presentation/providers/streak_provider.dart';
 import 'package:apphoctienganh/features/skill_speaking/domain/entities/speaking_lesson.dart';
 import 'package:apphoctienganh/features/skill_speaking/presentation/providers/reading_practice_provider.dart';
 import 'package:flutter/material.dart';
@@ -27,6 +28,8 @@ class _ReadingPracticeScreenState extends State<ReadingPracticeScreen> {
       await _requestMicPermission();
       if (!mounted) return;
       await context.read<ReadingPracticeProvider>().loadLesson(widget.lesson);
+      if (!mounted) return;
+      await _checkInStreak();
     });
   }
 
@@ -35,6 +38,48 @@ class _ReadingPracticeScreenState extends State<ReadingPracticeScreen> {
     if (!status.isGranted) {
       await Permission.microphone.request();
     }
+  }
+
+  Future<void> _checkInStreak() async {
+    final result = await context.read<StreakProvider>().recordStudySession();
+    if (!mounted || !result.isNewDay) {
+      return;
+    }
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        return AlertDialog(
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(24),
+          ),
+          title: Text(
+            'Điểm danh học tập',
+            style: GoogleFonts.plusJakartaSans(
+              fontSize: 18,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF20254D),
+            ),
+          ),
+          content: Text(
+            'Bạn đã hoàn thành check-in hôm nay. Chuỗi hiện tại là ${result.streakDays} ngày.',
+            style: GoogleFonts.plusJakartaSans(height: 1.5),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(dialogContext).pop(),
+              child: Text(
+                'Tuyệt vời',
+                style: GoogleFonts.plusJakartaSans(
+                  fontWeight: FontWeight.w700,
+                  color: const Color(0xFF5B5FEF),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
   }
 
   Future<void> _showResultDialog(double score) async {
